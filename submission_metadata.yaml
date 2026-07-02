@@ -1,29 +1,28 @@
 # Redrob Hackathon — Submission Metadata
 #
-# Generated from submission_metadata_template.yaml
+
 
 # ============================================================================
 # Team identity
 # ============================================================================
-team_name: "CHANGE_ME"  # <-- Replace with your team name
+team_name: "TEAM MIGHTY X"  
 
 primary_contact:
-  name: "CHANGE_ME"              # <-- Replace with your name
-  email: "CHANGE_ME@example.com" # <-- Replace with your email
-  phone: "+91-XXXXXXXXXX"        # <-- Replace with your phone
+  name: "Harsh Panth"             
+  email: "harshpanth2704@gmail.com"
+  phone: "+91-9399879407" 
 
 team_members:
-  - name: "CHANGE_ME"            # <-- Replace with your name
-    email: "CHANGE_ME@example.com"
+  - name: "Manas Pal"           
+    email: "manaspal4568@gmail.com"
     role: "ML Engineer"
-  # Add more members as needed
 
 # ============================================================================
 # Code and reproducibility
 # ============================================================================
-github_repo: "CHANGE_ME"  # <-- Replace with your GitHub repo URL
+github_repo: "https://github.com/MANAS2605/redrob-ranker"  
 
-sandbox_link: "CHANGE_ME"  # <-- Replace with your sandbox URL (HF Spaces, Streamlit, etc.)
+sandbox_link: "https://huggingface.co/spaces/manaspal626/redrob-ranker"  # <-- Replace with your sandbox URL (HF Spaces, Streamlit, etc.)
 
 reproduce_command: "python rank.py --input ./candidates.jsonl --output ./submission.csv"
 # Runs in ~13s on CPU with 16GB RAM and no network.
@@ -48,7 +47,7 @@ compute:
 # AI tools declaration
 # ============================================================================
 ai_tools_used:
-  - "Gemini (Antigravity IDE)"    # Architecture, code generation, debugging
+  - "Gemini (Antigravity IDE),Claude Opus Chat agent"    # Architecture, code generation, debugging
   # Add any others you used
 
 ai_usage_summary: |
