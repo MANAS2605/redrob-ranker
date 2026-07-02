@@ -206,7 +206,14 @@ def load_model(model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
     from sentence_transformers import SentenceTransformer
     print(f"Loading model: {model_name}...")
     model = SentenceTransformer(model_name)
-    dim = getattr(model, 'get_embedding_dimension', model.get_sentence_embedding_dimension)()
+    # Get embedding dimension — API changed across versions
+    try:
+        dim = model.get_embedding_dimension()
+    except (AttributeError, TypeError):
+        try:
+            dim = model.get_sentence_embedding_dimension()
+        except (AttributeError, TypeError):
+            dim = "unknown"
     print(f"Model loaded. Embedding dimension: {dim}")
     return model
 
