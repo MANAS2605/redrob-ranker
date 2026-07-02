@@ -1,0 +1,90 @@
+# Redrob Hackathon — Submission Metadata
+#
+# Generated from submission_metadata_template.yaml
+
+# ============================================================================
+# Team identity
+# ============================================================================
+team_name: "CHANGE_ME"  # <-- Replace with your team name
+
+primary_contact:
+  name: "CHANGE_ME"              # <-- Replace with your name
+  email: "CHANGE_ME@example.com" # <-- Replace with your email
+  phone: "+91-XXXXXXXXXX"        # <-- Replace with your phone
+
+team_members:
+  - name: "CHANGE_ME"            # <-- Replace with your name
+    email: "CHANGE_ME@example.com"
+    role: "ML Engineer"
+  # Add more members as needed
+
+# ============================================================================
+# Code and reproducibility
+# ============================================================================
+github_repo: "CHANGE_ME"  # <-- Replace with your GitHub repo URL
+
+sandbox_link: "CHANGE_ME"  # <-- Replace with your sandbox URL (HF Spaces, Streamlit, etc.)
+
+reproduce_command: "python rank.py --input ./candidates.jsonl --output ./submission.csv"
+# Runs in ~13s on CPU with 16GB RAM and no network.
+# Requires precomputed artifacts in artifacts/ directory (features.parquet,
+# honeypot_flags.parquet, embeddings.parquet).
+
+# ============================================================================
+# Compute environment
+# ============================================================================
+compute:
+  platform: "Windows Desktop"
+  cpu_cores: 8                    # Adjust to your actual core count
+  ram_gb: 16
+  python_version: "3.14.3"
+  os: "Windows"
+  uses_gpu_for_inference: false
+  has_network_during_ranking: false
+  pre_computation_required: true
+  pre_computation_time_minutes: 140  # ~40s features + ~10m honeypot + ~120m embeddings
+
+# ============================================================================
+# AI tools declaration
+# ============================================================================
+ai_tools_used:
+  - "Gemini (Antigravity IDE)"    # Architecture, code generation, debugging
+  # Add any others you used
+
+ai_usage_summary: |
+  Used Gemini (Antigravity IDE agent) for architecture discussion, code generation,
+  and iterative debugging of the ranking pipeline. No candidate data was fed to any
+  hosted LLM during ranking. The sentence-transformers model (all-MiniLM-L6-v2) runs
+  fully offline on CPU during precomputation. rank.py itself makes zero network calls.
+
+# ============================================================================
+# Approach summary
+# ============================================================================
+methodology_summary: |
+  Three-stage offline precomputation + lightweight CPU ranking pipeline.
+
+  Stage 1: Rule-based feature extraction (14 features covering skill relevance,
+  experience fit, title alignment, career depth, location, behavioral signals)
+  plus 7-rule honeypot detection (impossible education sequences, YOE mismatches,
+  expert-skill-low-duration anomalies). Hard-excludes ~11K honeypots.
+
+  Stage 2: Semantic embeddings via sentence-transformers/all-MiniLM-L6-v2. Two
+  text representations per candidate (full-text and skills-only, since career
+  descriptions are shuffled in the dataset). Three JD persona variants (buzzword,
+  plain-language, hybrid) defend against the Tier-5 plain-language trap. Combined
+  similarity = 0.4*full_max + 0.6*skills_max.
+
+  Stage 3: Weighted composite score (60% technical fit via embeddings + structured
+  skills, 25% profile fit, 15% logistics). Multiplicative penalties for title-
+  chasers and consulting-only careers. rank.py loads precomputed parquets and
+  produces submission.csv in ~13 seconds on CPU.
+
+# ============================================================================
+# Declarations
+# ============================================================================
+declarations:
+  read_submission_spec: true
+  code_is_original_work: true
+  no_collusion: true
+  honeypot_check_done: true
+  reproduction_tested: true

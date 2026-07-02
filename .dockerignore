@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.git/
+.gitignore
+candidates.jsonl
+artifacts/*.parquet
+*.docx
+prompt.md
+submission.csv
+submission_demo.csv
