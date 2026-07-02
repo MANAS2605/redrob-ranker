@@ -348,8 +348,9 @@ for key, default in [
     ("logs", None),
     ("elapsed", 0),
     ("input_file", None),
-    ("jd_mode", "preset"),      # "preset" or "custom"
+    ("jd_mode", "preset"),
     ("custom_jd_text", ""),
+    ("jd_config", None),
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
@@ -665,38 +666,55 @@ elif st.session_state.step == 3:
     bar = st.progress(0)
     msg = st.empty()
 
-    steps = [
-        ("📄 Reading candidate data…", None, 5),
-        ("🔍 Extracting 14 structured features…", [
-            sys.executable, "precompute/precompute_features.py",
-            "--input", inp, "--output", "artifacts/features.parquet",
-        ], 25),
-        ("🛡️ Running honeypot detection (7 plausibility rules)…", [
-            sys.executable, "precompute/precompute_honeypot_flags.py",
-            "--input", inp, "--output", "artifacts/honeypot_flags.parquet",
-        ], 50),
-        ("🧠 Computing semantic embeddings (MiniLM-L6-v2)…", None, 75),  # placeholder, built dynamically below
-    ]
+    # ── Determine JD mode and prepare config files ──
+    is_custom = st.session_state.jd_mode == "custom" and st.session_state.custom_jd_text
+    jd_file_path = None
+    jd_config_path = None
 
-    # Build the embeddings command dynamically (may include --jd-file)
+    if is_custom:
+        jd_file_path = "custom_jd.txt"
+        jd_config_path = "jd_config.json"
+        with open(jd_file_path, "w", encoding="utf-8") as f:
+            f.write(st.session_state.custom_jd_text)
+
+    # ── Build pipeline steps dynamically ──
+    steps = []
+
+    # Step 0: Parse JD (only for custom)
+    if is_custom:
+        steps.append(("📋 Understanding job description…", [
+            sys.executable, "precompute/parse_jd.py",
+            "--jd-file", jd_file_path,
+            "--output", jd_config_path,
+        ], 5))
+
+    steps.append(("📄 Reading candidate data…", None, 10))
+
+    # Features — pass --jd-config if custom
+    feat_cmd = [
+        sys.executable, "precompute/precompute_features.py",
+        "--input", inp, "--output", "artifacts/features.parquet",
+    ]
+    if is_custom and jd_config_path:
+        feat_cmd.extend(["--jd-config", jd_config_path])
+    steps.append(("🔍 Extracting structured features…", feat_cmd, 30))
+
+    # Honeypot detection (no JD dependency)
+    steps.append(("🛡️ Running honeypot detection (7 plausibility rules)…", [
+        sys.executable, "precompute/precompute_honeypot_flags.py",
+        "--input", inp, "--output", "artifacts/honeypot_flags.parquet",
+    ], 55))
+
+    # Embeddings — pass --jd-file if custom
     emb_cmd = [
         sys.executable, "precompute/precompute_embeddings.py",
         "--input", inp, "--output", "artifacts/embeddings.parquet",
     ]
-    jd_file_path = None
-    if st.session_state.jd_mode == "custom" and st.session_state.custom_jd_text:
-        jd_file_path = "custom_jd.txt"
-        with open(jd_file_path, "w", encoding="utf-8") as f:
-            f.write(st.session_state.custom_jd_text)
+    if is_custom and jd_file_path:
         emb_cmd.extend(["--jd-file", jd_file_path])
+    steps.append(("🧠 Computing semantic embeddings (MiniLM-L6-v2)…", emb_cmd, 80))
 
-    # Replace the placeholder embeddings step with the actual command
-    steps[-1] = ("🧠 Computing semantic embeddings (MiniLM-L6-v2)…", emb_cmd, 80)
-
-    # Add final placeholder step
-    steps.append(
-        ("📊 Ranking candidates & generating explanations…", None, 90),
-    )
+    steps.append(("📊 Ranking candidates & generating explanations…", None, 90))
 
     logs = {}
     ok = True
@@ -738,6 +756,13 @@ elif st.session_state.step == 3:
             st.session_state.submission = pd.read_csv("submission_demo.csv")
             st.session_state.logs = logs
             st.session_state.elapsed = elapsed
+
+            # Load JD config if custom
+            if is_custom and jd_config_path and os.path.exists(jd_config_path):
+                with open(jd_config_path, "r", encoding="utf-8") as jf:
+                    st.session_state.jd_config = json.load(jf)
+            else:
+                st.session_state.jd_config = None
 
             time.sleep(0.8)
             st.session_state.step = 4
@@ -787,6 +812,51 @@ elif st.session_state.step == 4:
             """, unsafe_allow_html=True)
 
     st.markdown("---")
+
+    # ── JD Understanding panel (for custom JD) ──
+    jd_cfg = st.session_state.jd_config
+    if jd_cfg:
+        with st.expander("🧠 What the AI understood from your Job Description", expanded=True):
+            uc1, uc2, uc3 = st.columns(3)
+
+            with uc1:
+                st.markdown("**🎯 Role Understanding**")
+                st.markdown(f"- **Seniority:** {jd_cfg.get('seniority', 'N/A').title()}")
+                exp = jd_cfg.get('experience_range', {})
+                if exp.get('min', 0) > 0 or exp.get('max', 99) < 99:
+                    st.markdown(f"- **Experience:** {exp['min']}–{exp['max']} years")
+                locs = jd_cfg.get('locations', [])
+                if locs:
+                    loc_str = ", ".join(l['city'] for l in locs[:5])
+                    st.markdown(f"- **Locations:** {loc_str}")
+                domains = jd_cfg.get('domain_keywords', [])
+                if domains:
+                    st.markdown(f"- **Industry:** {', '.join(domains)}")
+
+            with uc2:
+                st.markdown("**✅ Must-Have Skills**")
+                must = jd_cfg.get('must_have_skills', {})
+                if must:
+                    for domain, terms in list(must.items())[:8]:
+                        tags = " ".join(f'<span class="skill-match skill-tag">{t}</span>' for t in terms[:4])
+                        st.markdown(f"{tags}", unsafe_allow_html=True)
+                else:
+                    st.markdown("_No specific must-have skills detected_")
+
+            with uc3:
+                st.markdown("**✨ Nice-to-Have Skills**")
+                nice = jd_cfg.get('nice_to_have_skills', {})
+                if nice:
+                    for domain, terms in list(nice.items())[:6]:
+                        tags = " ".join(f'<span class="skill-tag">{t}</span>' for t in terms[:4])
+                        st.markdown(f"{tags}", unsafe_allow_html=True)
+                else:
+                    st.markdown("_No specific nice-to-have skills detected_")
+
+            total_skills = jd_cfg.get('n_total_skills_found', 0)
+            st.caption(f"📊 Detected {total_skills} skill terms across {jd_cfg.get('n_must_have_domains', 0)} must-have and {jd_cfg.get('n_nice_to_have_domains', 0)} nice-to-have domains")
+
+        st.markdown("---")
 
     # ── Tabs ──
     tab_all, tab_short, tab_logs = st.tabs([
@@ -1013,7 +1083,7 @@ elif st.session_state.step == 4:
     # ── Bottom nav ──
     st.markdown("---")
     if st.button("🔄 Start New Analysis"):
-        for k in ["step", "candidates", "submission", "logs", "elapsed", "input_file", "jd_mode", "custom_jd_text"]:
+        for k in ["step", "candidates", "submission", "logs", "elapsed", "input_file", "jd_mode", "custom_jd_text", "jd_config"]:
             if k in st.session_state:
                 del st.session_state[k]
         st.session_state.step = 1

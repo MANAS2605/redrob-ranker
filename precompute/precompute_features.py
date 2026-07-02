@@ -687,7 +687,75 @@ def main():
                         help="Output parquet path")
     parser.add_argument("--summary", action="store_true",
                         help="Print summary statistics after extraction")
+    parser.add_argument("--jd-config", default=None,
+                        help="Path to a JD config JSON (from parse_jd.py). "
+                             "When provided, skill clusters, experience range, and "
+                             "locations are dynamically loaded from the config.")
     args = parser.parse_args()
+    
+    # --- Dynamic JD config override ---
+    if args.jd_config:
+        print(f"Loading JD config from {args.jd_config}...")
+        with open(args.jd_config, "r", encoding="utf-8") as f:
+            jd_cfg = json.load(f)
+        
+        # Override MUST_HAVE_CLUSTERS
+        global MUST_HAVE_CLUSTERS, NICE_TO_HAVE_CLUSTERS
+        global IDEAL_LOCATIONS, GOOD_LOCATIONS
+        
+        if jd_cfg.get("must_have_skills"):
+            MUST_HAVE_CLUSTERS = jd_cfg["must_have_skills"]
+            print(f"  Overrode must-have clusters: {list(MUST_HAVE_CLUSTERS.keys())}")
+        
+        if jd_cfg.get("nice_to_have_skills"):
+            NICE_TO_HAVE_CLUSTERS = jd_cfg["nice_to_have_skills"]
+            print(f"  Overrode nice-to-have clusters: {list(NICE_TO_HAVE_CLUSTERS.keys())}")
+        
+        # Override locations
+        if jd_cfg.get("ideal_locations"):
+            IDEAL_LOCATIONS = jd_cfg["ideal_locations"][:3]
+            GOOD_LOCATIONS = jd_cfg["ideal_locations"][3:] + GOOD_LOCATIONS
+            print(f"  Overrode locations: ideal={IDEAL_LOCATIONS}")
+        
+        # Override experience range (monkey-patch the function)
+        exp_range = jd_cfg.get("experience_range", {})
+        exp_min = exp_range.get("min", 6)
+        exp_max = exp_range.get("max", 8)
+        if exp_min > 0 or exp_max < 99:
+            ideal_lo = exp_min
+            ideal_hi = exp_max
+            
+            def dynamic_experience_fit(years):
+                """Dynamic triangular fit based on JD config."""
+                if ideal_lo <= years <= ideal_hi:
+                    return 1.0
+                elif years < ideal_lo:
+                    dist = ideal_lo - years
+                    if dist <= 1:
+                        return 0.85
+                    elif dist <= 3:
+                        return 0.85 - 0.35 * (dist - 1) / 2
+                    elif dist <= 5:
+                        return 0.5 - 0.3 * (dist - 3) / 2
+                    else:
+                        return max(0.1, 0.2 - 0.1 * (dist - 5) / 5)
+                else:
+                    dist = years - ideal_hi
+                    if dist <= 1:
+                        return 0.85
+                    elif dist <= 3:
+                        return 0.85 - 0.35 * (dist - 1) / 2
+                    elif dist <= 8:
+                        return 0.5 - 0.3 * (dist - 3) / 5
+                    else:
+                        return max(0.1, 0.2 - 0.1 * (dist - 8) / 10)
+            
+            # Monkey-patch
+            global compute_experience_fit_score
+            compute_experience_fit_score = dynamic_experience_fit
+            print(f"  Overrode experience range: {ideal_lo}-{ideal_hi} years")
+        
+        print(f"  JD Summary: {jd_cfg.get('jd_summary', 'N/A')}")
     
     print(f"Loading candidates from {args.input}...")
     candidates = parse_candidates(args.input)
