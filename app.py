@@ -1,13 +1,18 @@
 """
 app.py — Streamlit sandbox for the Redrob Candidate Ranking System.
 
-Runs the full pipeline on sample_candidates.json and displays results.
+Supports two modes:
+1. Demo mode: runs on bundled sample_candidates.json
+2. Upload mode: recruiter uploads their own candidate file (JSON/JSONL)
+
 Deployed on HuggingFace Spaces as a Docker container.
 """
 
 import json
+import os
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -22,13 +27,11 @@ st.set_page_config(
 
 
 # ---------------------------------------------------------------------------
-# Precompute artifacts on first run (cached)
+# Pipeline functions
 # ---------------------------------------------------------------------------
 
-@st.cache_data(show_spinner=False)
-def run_precomputation():
-    """Run the full precomputation pipeline on sample data. Cached so it only runs once."""
-    input_file = "sample_candidates.json"
+def run_precomputation(input_file: str):
+    """Run the full precomputation pipeline on given input file."""
     steps = [
         ("Feature Extraction", [
             sys.executable, "precompute/precompute_features.py",
@@ -58,14 +61,13 @@ def run_precomputation():
     return logs, True
 
 
-@st.cache_data(show_spinner=False)
-def run_ranking():
-    """Run rank.py on sample data."""
+def run_ranking(input_file: str, top_n: int = 100):
+    """Run rank.py on given input file."""
     cmd = [
         sys.executable, "rank.py",
-        "--input", "sample_candidates.json",
+        "--input", input_file,
         "--output", "submission_demo.csv",
-        "--top-n", "50",  # sample has only 50 candidates
+        "--top-n", str(top_n),
     ]
     t0 = time.time()
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=".")
@@ -73,11 +75,31 @@ def run_ranking():
     return result, elapsed
 
 
-@st.cache_data(show_spinner=False)
-def load_candidates():
-    """Load sample candidates."""
-    with open("sample_candidates.json", "r", encoding="utf-8") as f:
-        return json.load(f)
+def load_candidates(input_file: str):
+    """Load candidates from JSON or JSONL file."""
+    with open(input_file, "r", encoding="utf-8") as f:
+        first_char = f.read(1)
+        f.seek(0)
+        
+        if first_char == "[":
+            # JSON array
+            return json.load(f)
+        else:
+            # JSONL (one JSON object per line)
+            candidates = []
+            for line in f:
+                line = line.strip()
+                if line:
+                    candidates.append(json.loads(line))
+            return candidates
+
+
+def save_uploaded_file(uploaded_file) -> str:
+    """Save uploaded file to a temporary location and return the path."""
+    upload_path = "uploaded_candidates.json"
+    with open(upload_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    return upload_path
 
 
 # ---------------------------------------------------------------------------
@@ -86,48 +108,103 @@ def load_candidates():
 
 st.title("🎯 Redrob Candidate Ranker")
 st.markdown("""
-**AI-powered candidate ranking for the Redrob Hackathon.**  
-This sandbox runs the full pipeline on a 50-candidate sample dataset.
+**AI-powered candidate ranking system.**  
+Upload your own candidate file or try the built-in demo dataset.
 """)
 
 st.divider()
 
+# ---------------------------------------------------------------------------
+# Data source selection
+# ---------------------------------------------------------------------------
+
+col_mode1, col_mode2 = st.columns(2)
+
+with col_mode1:
+    st.markdown("### 📤 Upload Candidates")
+    uploaded_file = st.file_uploader(
+        "Upload a JSON or JSONL candidate file",
+        type=["json", "jsonl"],
+        help="File should contain candidate objects with profile, skills, education, career_history fields."
+    )
+
+with col_mode2:
+    st.markdown("### 📦 Use Demo Dataset")
+    use_demo = st.button("Run with sample_candidates.json (50 candidates)", use_container_width=True)
+
+# Determine which file to use
+input_file = None
+run_key = None  # Used to cache results per file
+
+if uploaded_file is not None:
+    input_file = save_uploaded_file(uploaded_file)
+    run_key = f"upload_{uploaded_file.name}_{uploaded_file.size}"
+    st.success(f"Uploaded: **{uploaded_file.name}** ({uploaded_file.size / 1024:.0f} KB)")
+elif use_demo or "demo_ran" in st.session_state:
+    input_file = "sample_candidates.json"
+    run_key = "demo_sample"
+    st.session_state["demo_ran"] = True
+
+if input_file is None:
+    st.info("👆 Upload a candidate file or click the demo button to get started.")
+    st.stop()
+
+st.divider()
+
+# ---------------------------------------------------------------------------
+# Count candidates to set top_n
+# ---------------------------------------------------------------------------
+
+candidates = load_candidates(input_file)
+n_candidates = len(candidates)
+top_n = min(100, n_candidates)
+
+st.markdown(f"**Loaded {n_candidates} candidates** from `{os.path.basename(input_file)}`")
+
+# ---------------------------------------------------------------------------
+# Run pipeline
+# ---------------------------------------------------------------------------
+
 # Step 1: Precomputation
 with st.status("Running precomputation pipeline...", expanded=True) as status:
     st.write("⚙️ Extracting features, detecting honeypots, computing embeddings...")
-    logs, success = run_precomputation()
+    st.write(f"Processing {n_candidates} candidates...")
+    
+    logs, success = run_precomputation(input_file)
     
     if success:
-        status.update(label="Precomputation complete!", state="complete")
+        status.update(label="✅ Precomputation complete!", state="complete")
     else:
-        status.update(label="Precomputation failed!", state="error")
+        status.update(label="❌ Precomputation failed!", state="error")
         for step_name, log in logs.items():
             if log["returncode"] != 0:
                 st.error(f"**{step_name}** failed:")
-                st.code(log["stderr"])
+                st.code(log["stderr"][-3000:])
         st.stop()
 
 # Step 2: Ranking
 with st.status("Running ranking pipeline...", expanded=False) as status:
-    result, elapsed = run_ranking()
+    result, elapsed = run_ranking(input_file, top_n)
     if result.returncode == 0:
-        status.update(label=f"Ranking complete in {elapsed:.1f}s!", state="complete")
+        status.update(label=f"✅ Ranking complete in {elapsed:.1f}s!", state="complete")
     else:
-        status.update(label="Ranking failed!", state="error")
-        st.code(result.stderr)
+        status.update(label="❌ Ranking failed!", state="error")
+        st.code(result.stderr[-3000:])
         st.stop()
 
 st.divider()
 
+# ---------------------------------------------------------------------------
 # Results
+# ---------------------------------------------------------------------------
+
 submission = pd.read_csv("submission_demo.csv")
-candidates = load_candidates()
 candidate_lookup = {c["candidate_id"]: c for c in candidates}
 
-# Key metrics
+# Key metrics row
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    st.metric("Candidates Processed", len(candidates))
+    st.metric("Candidates Processed", n_candidates)
 with col2:
     honeypot_df = pd.read_parquet("artifacts/honeypot_flags.parquet")
     excluded = (honeypot_df["implausibility_score"] >= 0.3).sum()
@@ -139,10 +216,20 @@ with col4:
 
 st.divider()
 
+# Download button for submission CSV
+st.download_button(
+    label="📥 Download submission.csv",
+    data=open("submission_demo.csv", "r").read(),
+    file_name="submission.csv",
+    mime="text/csv",
+    use_container_width=True,
+)
+
+st.divider()
+
 # Ranking results table
 st.subheader("📊 Ranked Candidates")
 
-# Build display table
 display_rows = []
 for _, row in submission.iterrows():
     cand = candidate_lookup.get(row["candidate_id"], {})
@@ -191,10 +278,12 @@ with col_right:
     skills = cand.get("skills", [])
     if skills:
         st.markdown("**Skills:**")
-        for s in skills:
+        for s in skills[:15]:  # Show top 15 skills
             dur = s.get("duration_months")
             dur_str = f", {dur}mo" if dur else ""
             st.markdown(f"- {s['name']} ({s.get('proficiency', 'N/A')}{dur_str})")
+        if len(skills) > 15:
+            st.caption(f"... and {len(skills) - 15} more skills")
     
     # Assessments
     assessments = cand.get("redrob_signals", {}).get("skill_assessment_scores", {})
@@ -207,7 +296,8 @@ with col_right:
 with st.expander("📋 Pipeline Logs"):
     for step_name, log in logs.items():
         st.markdown(f"**{step_name}:**")
-        st.code(log["stdout"][-2000:] if len(log["stdout"]) > 2000 else log["stdout"])
+        stdout = log["stdout"]
+        st.code(stdout[-2000:] if len(stdout) > 2000 else stdout)
 
 st.divider()
-st.caption("Built for the Redrob Hackathon. Pipeline: feature extraction → honeypot detection → semantic embeddings → weighted ranking.")
+st.caption("Built for the Redrob Hackathon • Pipeline: feature extraction → honeypot detection → semantic embeddings → weighted ranking")
