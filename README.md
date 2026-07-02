@@ -1,3 +1,12 @@
+---
+title: Redrob Candidate Ranker
+emoji: 🎯
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+---
+
 # Redrob Hackathon — Candidate Ranking System
 
 A three-stage ML pipeline that ranks 100,000 candidates against a fixed job
