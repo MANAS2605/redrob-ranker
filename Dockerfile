@@ -21,6 +21,7 @@ COPY rank.py .
 COPY validate_submission.py .
 COPY sample_candidates.json .
 COPY precompute/ precompute/
+COPY .streamlit/ .streamlit/
 
 # Create artifacts directory
 RUN mkdir -p artifacts
@@ -31,9 +32,13 @@ EXPOSE 7860
 # Health check
 HEALTHCHECK CMD curl --fail http://localhost:7860/_stcore/health || exit 1
 
-# Run Streamlit
+# Run Streamlit with light theme
 CMD ["streamlit", "run", "app.py", \
      "--server.port=7860", \
      "--server.address=0.0.0.0", \
      "--server.headless=true", \
-     "--browser.gatherUsageStats=false"]
+     "--browser.gatherUsageStats=false", \
+     "--theme.primaryColor=#4F46E5", \
+     "--theme.backgroundColor=#FAFBFF", \
+     "--theme.secondaryBackgroundColor=#F1F5F9", \
+     "--theme.textColor=#1E293B"]

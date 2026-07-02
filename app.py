@@ -42,7 +42,37 @@ st.markdown("""
     }
     
     .stApp {
-        background: linear-gradient(180deg, #F8FAFC 0%, #EEF2FF 100%);
+        background: linear-gradient(180deg, #FAFBFF 0%, #F5F3FF 50%, #EEF2FF 100%);
+    }
+    
+    /* Hide ALL Streamlit chrome — header, decoration, toolbar, deploy */
+    header, header * {
+        background: transparent !important;
+        background-image: none !important;
+        border: none !important;
+    }
+    header[data-testid="stHeader"] {
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+    [data-testid="stDecoration"],
+    [data-testid="stToolbar"],
+    .stAppDeployButton,
+    .stDeployButton,
+    button[title="Deploy"] {
+        display: none !important;
+        height: 0 !important;
+    }
+    /* Remove top gap left by hidden header */
+    .stApp > header + div,
+    [data-testid="stAppViewContainer"] {
+        padding-top: 0 !important;
+    }
+    .block-container {
+        padding-top: 1rem !important;
     }
     
     /* ── Force readable dark text everywhere ── */
@@ -86,6 +116,8 @@ st.markdown("""
     /* Hide default Streamlit elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+    button[title="Deploy"] { display: none !important; }
+    .stDeployButton { display: none !important; }
     
     /* ─── Hero ─── */
     .hero-container {
@@ -106,13 +138,24 @@ st.markdown("""
     }
     
     .hero-title {
-        font-size: 2.8rem;
+        font-size: 2.4rem;
         font-weight: 800;
         background: linear-gradient(135deg, #4F46E5, #7C3AED);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.4rem;
+        line-height: 1.2;
+    }
+    
+    .hero-title-sm {
+        font-size: 1.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #4F46E5, #7C3AED);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.3rem;
         line-height: 1.2;
     }
     
@@ -365,6 +408,26 @@ st.markdown("""
     .strength-item { color: #059669 !important; }
     .concern-item  { color: #D97706 !important; }
     
+    /* ─── Tab underline — indigo instead of green ─── */
+    [data-baseweb="tab-highlight"] {
+        background-color: #4F46E5 !important;
+    }
+    
+    /* ─── Pagination ─── */
+    .pagination-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        padding: 1rem 0;
+    }
+    
+    .page-info {
+        font-size: 0.85rem;
+        color: #64748B;
+        font-weight: 500;
+    }
+    
     /* ─── Divider ─── */
     hr {
         border: none;
@@ -503,21 +566,30 @@ def get_concerns(cand, feats, honeys):
 
 
 # ---------------------------------------------------------------------------
-# Hero
+# Hero — compact on later steps
 # ---------------------------------------------------------------------------
 
-st.markdown("""
-<div class="hero-container">
-    <div class="hero-badge">⚡ AI-POWERED RECRUITING</div>
-    <div class="hero-title">TalentRank AI</div>
-    <div class="hero-subtitle">
-        Upload candidates, paste a job description, and let AI find your 
-        best matches — ranked with clear explanations, not keyword tricks.
-    </div>
-</div>
-""", unsafe_allow_html=True)
+current_step = st.session_state.step
 
-render_steps(st.session_state.step)
+if current_step <= 2:
+    st.markdown("""
+    <div class="hero-container">
+        <div class="hero-badge">⚡ AI-POWERED RECRUITING</div>
+        <div class="hero-title">TalentRank AI</div>
+        <div class="hero-subtitle">
+            Upload candidates, paste a job description, and let AI find your 
+            best matches — ranked with clear explanations, not keyword tricks.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown("""
+    <div class="hero-container" style="padding: 1rem 1rem 0.25rem;">
+        <div class="hero-title-sm">⚡ TalentRank AI</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+render_steps(current_step)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -980,26 +1052,54 @@ elif st.session_state.step == 4:
             data=all_csv_df.to_csv(index=False),
             file_name="talentrank_all_results.csv",
             mime="text/csv",
-            use_container_width=True,
         )
 
         st.markdown("")
 
-        # ── Render candidate cards ──
-        for _, row in enriched.iterrows():
+        # ── Pagination ──
+        PAGE_SIZE = 10
+        if "page" not in st.session_state:
+            st.session_state.page = 0
+        total_pages = max(1, (len(enriched) + PAGE_SIZE - 1) // PAGE_SIZE)
+        st.session_state.page = min(st.session_state.page, total_pages - 1)
+
+        pg_start = st.session_state.page * PAGE_SIZE
+        pg_end = min(pg_start + PAGE_SIZE, len(enriched))
+        page_df = enriched.iloc[pg_start:pg_end]
+
+        # Pagination controls
+        pcol1, pcol2, pcol3, pcol4, pcol5 = st.columns([1, 1, 2, 1, 1])
+        with pcol1:
+            if st.button("◀ Prev", disabled=(st.session_state.page == 0), key="prev"):
+                st.session_state.page -= 1
+                st.rerun()
+        with pcol3:
+            st.markdown(f'<div style="text-align:center;" class="page-info">Page {st.session_state.page + 1} of {total_pages} · Showing {pg_start + 1}–{pg_end} of {len(enriched)}</div>', unsafe_allow_html=True)
+        with pcol5:
+            if st.button("Next ▶", disabled=(st.session_state.page >= total_pages - 1), key="next"):
+                st.session_state.page += 1
+                st.rerun()
+
+        st.markdown("")
+
+        # ── Render candidate cards (paginated) ──
+        for _, row in page_df.iterrows():
             cid = row["candidate_id"]
             cand = c_lookup.get(cid, {})
             profile = cand.get("profile", {})
             s = score100(row["score"])
             cls = score_cls(s)
-            skills = get_skills(cand)
+            skills = get_skills(cand, n=6)
+            extra_skills = max(0, len(cand.get("skills", [])) - 6)
             education = get_education(cand)
             strengths = get_strengths(cand, feat_lu, emb_lu)
             concerns = get_concerns(cand, feat_lu, honey_lu)
             is_short = cid in st.session_state.shortlisted
 
-            # Skills HTML
+            # Skills HTML (max 6 + count)
             skills_html = " ".join(f'<span class="skill-tag">{sk}</span>' for sk in skills)
+            if extra_skills > 0:
+                skills_html += f' <span class="skill-tag" style="background:#F1F5F9;color:#94A3B8;">+{extra_skills} more</span>'
 
             # Card header with score + info
             st.markdown(f"""
@@ -1010,13 +1110,13 @@ elif st.session_state.step == 4:
                         <div class="cand-name">#{int(row['rank'])} — {profile.get('current_title', 'N/A')}</div>
                         <div class="cand-meta">
                             <span>🆔 {cid}</span> ·
-                            <span>📅 {profile.get('years_of_experience', 0):.0f}y experience</span> ·
+                            <span>📅 {profile.get('years_of_experience', 0):.0f}y</span> ·
                             <span>🏢 {profile.get('current_company', 'N/A')}</span> ·
-                            <span>📍 {profile.get('location', 'N/A')}, {profile.get('country', '')}</span>
+                            <span>📍 {profile.get('location', 'N/A')}</span>
                         </div>
                     </div>
                 </div>
-                <div class="ai-box">💡 {row['reasoning']}</div>
+                <div class="ai-box">💡 {row['reasoning'][:250]}{'…' if len(str(row['reasoning'])) > 250 else ''}</div>
                 <div>{skills_html}</div>
             </div>
             """, unsafe_allow_html=True)
