@@ -36,24 +36,23 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
     
-    /* Global */
-    html, body, [class*="st-"] {
-        font-family: 'Inter', sans-serif;
+    /* Global font override — only target text elements, not internal Streamlit */
+    .stApp, .stMarkdown, .stText, p, h1, h2, h3, h4, h5, h6, span, div, label {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
     
     .stApp {
         background: linear-gradient(180deg, #F8FAFC 0%, #EEF2FF 100%);
     }
     
-    /* Hide Streamlit branding */
+    /* Hide default Streamlit elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
     
-    /* Hero section */
+    /* ─── Hero ─── */
     .hero-container {
         text-align: center;
-        padding: 2rem 1rem 1rem;
+        padding: 2rem 1rem 0.5rem;
     }
     
     .hero-badge {
@@ -65,7 +64,7 @@ st.markdown("""
         font-size: 0.8rem;
         font-weight: 600;
         letter-spacing: 0.5px;
-        margin-bottom: 1rem;
+        margin-bottom: 0.75rem;
     }
     
     .hero-title {
@@ -74,25 +73,26 @@ st.markdown("""
         background: linear-gradient(135deg, #4F46E5, #7C3AED);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        background-clip: text;
         margin-bottom: 0.5rem;
         line-height: 1.2;
     }
     
     .hero-subtitle {
-        font-size: 1.1rem;
+        font-size: 1.05rem;
         color: #64748B;
         font-weight: 400;
         max-width: 600px;
-        margin: 0 auto 2rem;
+        margin: 0 auto 1.5rem;
         line-height: 1.6;
     }
     
-    /* Step indicators */
+    /* ─── Step indicators ─── */
     .steps-container {
         display: flex;
         justify-content: center;
-        gap: 0.5rem;
-        margin: 1.5rem 0 2rem;
+        gap: 8px;
+        margin: 1rem 0 1.5rem;
         flex-wrap: wrap;
     }
     
@@ -100,17 +100,16 @@ st.markdown("""
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 8px 20px;
+        padding: 8px 18px;
         border-radius: 24px;
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         font-weight: 500;
-        transition: all 0.3s;
     }
     
     .step-active {
         background: linear-gradient(135deg, #4F46E5, #6366F1);
         color: white;
-        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
     }
     
     .step-complete {
@@ -130,7 +129,7 @@ st.markdown("""
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 700;
     }
     
@@ -138,375 +137,329 @@ st.markdown("""
     .step-complete .step-number { background: rgba(255,255,255,0.25); }
     .step-inactive .step-number { background: #CBD5E1; color: white; }
     
-    /* Cards */
+    /* ─── Glass card (visual-only header) ─── */
     .glass-card {
-        background: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.92);
         backdrop-filter: blur(10px);
         border: 1px solid rgba(226, 232, 240, 0.8);
         border-radius: 16px;
-        padding: 2rem;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+        padding: 1.5rem 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
         margin-bottom: 1rem;
     }
     
     .card-title {
-        font-size: 1.2rem;
+        font-size: 1.15rem;
         font-weight: 700;
         color: #1E293B;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.4rem;
     }
     
     .card-subtitle {
-        font-size: 0.9rem;
+        font-size: 0.88rem;
         color: #64748B;
-        margin-bottom: 1.5rem;
+        line-height: 1.5;
     }
     
-    /* Candidate card */
-    .candidate-card {
+    /* ─── Candidate card ─── */
+    .cand-card {
         background: white;
         border: 1px solid #E2E8F0;
         border-radius: 16px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-        transition: all 0.2s;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 0.25rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     }
     
-    .candidate-card:hover {
-        border-color: #A5B4FC;
-        box-shadow: 0 8px 24px rgba(79, 70, 229, 0.08);
-        transform: translateY(-2px);
+    .cand-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 0.5rem;
     }
     
-    .candidate-name {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #1E293B;
-    }
-    
-    .candidate-title {
-        font-size: 0.9rem;
-        color: #64748B;
-        margin-bottom: 0.75rem;
-    }
-    
-    /* Score badge */
-    .score-badge {
-        display: inline-flex;
+    .cand-score {
+        flex-shrink: 0;
+        width: 52px;
+        height: 52px;
+        border-radius: 12px;
+        display: flex;
         align-items: center;
         justify-content: center;
-        width: 56px;
-        height: 56px;
-        border-radius: 14px;
-        font-size: 1.2rem;
+        font-size: 1.15rem;
         font-weight: 800;
         color: white;
     }
     
-    .score-high { background: linear-gradient(135deg, #10B981, #059669); }
-    .score-mid { background: linear-gradient(135deg, #F59E0B, #D97706); }
-    .score-low { background: linear-gradient(135deg, #EF4444, #DC2626); }
+    .cand-score-high { background: linear-gradient(135deg, #10B981, #059669); }
+    .cand-score-mid  { background: linear-gradient(135deg, #F59E0B, #D97706); }
+    .cand-score-low  { background: linear-gradient(135deg, #EF4444, #DC2626); }
     
-    /* Skill tags */
+    .cand-info { flex: 1; min-width: 0; }
+    
+    .cand-name {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 2px;
+        word-wrap: break-word;
+    }
+    
+    .cand-meta {
+        font-size: 0.85rem;
+        color: #64748B;
+        margin-bottom: 0.5rem;
+    }
+    
+    .cand-meta span {
+        margin-right: 6px;
+    }
+    
+    /* ─── AI summary box ─── */
+    .ai-box {
+        background: linear-gradient(135deg, #EEF2FF, #F5F3FF);
+        border-left: 3px solid #4F46E5;
+        border-radius: 0 12px 12px 0;
+        padding: 10px 14px;
+        font-size: 0.85rem;
+        color: #334155;
+        line-height: 1.55;
+        margin: 0.5rem 0 0.75rem;
+        word-wrap: break-word;
+    }
+    
+    /* ─── Skill tags ─── */
     .skill-tag {
         display: inline-block;
         background: #EEF2FF;
         color: #4F46E5;
-        padding: 4px 12px;
-        border-radius: 8px;
-        font-size: 0.78rem;
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
         font-weight: 500;
         margin: 2px;
     }
     
-    .skill-tag-match {
+    .skill-match {
         background: #ECFDF5;
         color: #059669;
         border: 1px solid #A7F3D0;
     }
     
-    /* AI Summary box */
-    .ai-summary {
-        background: linear-gradient(135deg, #EEF2FF, #F5F3FF);
-        border-left: 3px solid #4F46E5;
-        border-radius: 0 12px 12px 0;
-        padding: 12px 16px;
-        font-size: 0.88rem;
-        color: #334155;
-        line-height: 1.6;
-        margin: 0.75rem 0;
-    }
-    
-    /* Metric cards */
+    /* ─── Metric cards ─── */
     .metric-card {
         background: white;
         border-radius: 14px;
-        padding: 1.25rem;
+        padding: 1.1rem 0.75rem;
         text-align: center;
         border: 1px solid #E2E8F0;
         box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
     
     .metric-value {
-        font-size: 2rem;
+        font-size: 1.8rem;
         font-weight: 800;
         background: linear-gradient(135deg, #4F46E5, #7C3AED);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
     
     .metric-label {
-        font-size: 0.82rem;
+        font-size: 0.75rem;
         color: #94A3B8;
-        font-weight: 500;
+        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        margin-top: 2px;
     }
     
-    /* Processing steps */
-    .process-step {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 0;
-        font-size: 0.95rem;
-    }
-    
-    .process-icon-done { color: #10B981; }
-    .process-icon-active { color: #4F46E5; }
-    .process-icon-pending { color: #CBD5E1; }
-    
-    /* Buttons */
+    /* ─── Buttons ─── */
     .stButton > button {
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         font-weight: 600 !important;
-        font-family: 'Inter', sans-serif !important;
-        padding: 0.6rem 2rem !important;
-        transition: all 0.2s !important;
+        padding: 0.5rem 1.5rem !important;
     }
     
-    .stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #4F46E5, #6366F1) !important;
-        border: none !important;
-        color: white !important;
-        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35) !important;
+    /* ─── Upload area ─── */
+    [data-testid="stFileUploader"] > div {
+        border-radius: 14px !important;
     }
     
-    .stButton > button[kind="primary"]:hover {
-        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45) !important;
-        transform: translateY(-1px) !important;
-    }
-    
-    /* Upload area */
-    .stFileUploader > div {
-        border-radius: 16px !important;
-        border: 2px dashed #A5B4FC !important;
-        background: #F8FAFF !important;
-    }
-    
-    .stFileUploader > div:hover {
-        border-color: #4F46E5 !important;
-        background: #EEF2FF !important;
-    }
-    
-    /* Text inputs */
+    /* ─── Text inputs ─── */
     .stTextArea textarea, .stTextInput input {
-        border-radius: 12px !important;
-        border: 1.5px solid #E2E8F0 !important;
-        font-family: 'Inter', sans-serif !important;
+        border-radius: 10px !important;
     }
     
-    .stTextArea textarea:focus, .stTextInput input:focus {
-        border-color: #4F46E5 !important;
-        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
-    }
-    
-    /* Selectbox */
-    .stSelectbox > div > div {
-        border-radius: 12px !important;
-    }
-    
-    /* Tabs */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 0;
-        background: #F1F5F9;
-        border-radius: 12px;
-        padding: 4px;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 10px;
-        font-weight: 600;
-        font-family: 'Inter', sans-serif;
-    }
-    
-    .stTabs [aria-selected="true"] {
-        background: white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-    
-    /* Divider */
-    hr {
-        border: none;
-        border-top: 1px solid #E2E8F0;
-        margin: 1.5rem 0;
-    }
-    
-    /* Download button */
+    /* ─── Download button ─── */
     .stDownloadButton > button {
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         background: linear-gradient(135deg, #10B981, #059669) !important;
         color: white !important;
         border: none !important;
         font-weight: 600 !important;
+    }
+    
+    /* ─── Details section ─── */
+    .detail-section {
+        background: #F8FAFC;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin: 4px 0;
+    }
+    
+    .detail-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 6px;
+    }
+    
+    .detail-item {
+        font-size: 0.88rem;
+        color: #334155;
+        padding: 2px 0;
+    }
+    
+    .strength-item { color: #059669; }
+    .concern-item  { color: #D97706; }
+    
+    /* ─── Divider ─── */
+    hr {
+        border: none;
+        border-top: 1px solid #E2E8F0;
+        margin: 1.25rem 0;
     }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
-# Session state initialization
+# Session state
 # ---------------------------------------------------------------------------
 
-if "step" not in st.session_state:
-    st.session_state.step = 1
-if "shortlisted" not in st.session_state:
-    st.session_state.shortlisted = set()
-if "candidates" not in st.session_state:
-    st.session_state.candidates = None
-if "submission" not in st.session_state:
-    st.session_state.submission = None
-if "logs" not in st.session_state:
-    st.session_state.logs = None
-if "elapsed" not in st.session_state:
-    st.session_state.elapsed = 0
-if "input_file" not in st.session_state:
-    st.session_state.input_file = None
+for key, default in [
+    ("step", 1),
+    ("shortlisted", set()),
+    ("candidates", None),
+    ("submission", None),
+    ("logs", None),
+    ("elapsed", 0),
+    ("input_file", None),
+    ("jd_mode", "preset"),      # "preset" or "custom"
+    ("custom_jd_text", ""),
+]:
+    if key not in st.session_state:
+        st.session_state[key] = default
 
 
 # ---------------------------------------------------------------------------
-# Helper functions
+# Helpers
 # ---------------------------------------------------------------------------
 
-def render_step_indicators(current_step):
-    steps = [
-        (1, "Upload Data"),
-        (2, "Job Description"),
-        (3, "AI Analysis"),
-        (4, "Results"),
-        (5, "Shortlist"),
-    ]
+def render_steps(current):
+    labels = ["Upload Data", "Job Description", "AI Analysis", "Results", "Shortlist"]
     pills = []
-    for num, label in steps:
-        if num < current_step:
-            cls = "step-complete"
-            icon = "✓"
-        elif num == current_step:
-            cls = "step-active"
-            icon = str(num)
+    for i, label in enumerate(labels, 1):
+        if i < current:
+            pills.append(f'<div class="step-pill step-complete"><span class="step-number">✓</span>{label}</div>')
+        elif i == current:
+            pills.append(f'<div class="step-pill step-active"><span class="step-number">{i}</span>{label}</div>')
         else:
-            cls = "step-inactive"
-            icon = str(num)
-        pills.append(
-            f'<div class="step-pill {cls}">'
-            f'<span class="step-number">{icon}</span>'
-            f'{label}</div>'
-        )
-    st.markdown(
-        f'<div class="steps-container">{"".join(pills)}</div>',
-        unsafe_allow_html=True,
-    )
+            pills.append(f'<div class="step-pill step-inactive"><span class="step-number">{i}</span>{label}</div>')
+    st.markdown(f'<div class="steps-container">{"".join(pills)}</div>', unsafe_allow_html=True)
 
 
-def score_to_100(score_0_1):
-    """Convert 0-1 score to 0-100 scale."""
-    return int(round(score_0_1 * 100))
+def score100(s):
+    return int(round(s * 100))
 
 
-def score_class(score_100):
-    if score_100 >= 70:
-        return "score-high"
-    elif score_100 >= 50:
-        return "score-mid"
-    return "score-low"
+def score_cls(s):
+    if s >= 70: return "cand-score-high"
+    if s >= 50: return "cand-score-mid"
+    return "cand-score-low"
 
 
-def load_candidates_from_file(filepath):
-    with open(filepath, "r", encoding="utf-8") as f:
-        first_char = f.read(1)
-        f.seek(0)
-        if first_char == "[":
-            return json.load(f)
-        else:
-            return [json.loads(line) for line in f if line.strip()]
+def load_file(path):
+    with open(path, "r", encoding="utf-8") as f:
+        c = f.read(1); f.seek(0)
+        return json.load(f) if c == "[" else [json.loads(l) for l in f if l.strip()]
 
 
-def save_uploaded(uploaded_file):
-    path = "uploaded_candidates.json"
-    with open(path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    return path
+def run_step(cmd):
+    r = subprocess.run(cmd, capture_output=True, text=True, cwd=".")
+    return {"stdout": r.stdout, "stderr": r.stderr, "rc": r.returncode}
 
 
-def run_pipeline_step(step_name, cmd):
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=".")
-    return {
-        "stdout": result.stdout,
-        "stderr": result.stderr,
-        "returncode": result.returncode,
-    }
+def get_skills(cand, n=10):
+    return [s.get("name", "") for s in cand.get("skills", [])[:n] if s.get("name")]
 
 
-def get_candidate_skills(cand, limit=8):
-    skills = cand.get("skills", [])
-    return [s.get("name", "") for s in skills[:limit]]
+def get_education(cand):
+    edu = cand.get("education", [])
+    lines = []
+    for e in edu[:3]:
+        deg = e.get("degree", "")
+        field = e.get("field_of_study", "")
+        inst = e.get("institution", "")
+        yr = e.get("graduation_year", "")
+        parts = [p for p in [deg, field] if p]
+        line = " in ".join(parts) if parts else "Degree"
+        if inst:
+            line += f" — {inst}"
+        if yr:
+            line += f" ({yr})"
+        lines.append(line)
+    return lines if lines else ["Not specified"]
 
 
-def get_strengths(cand, feats_lookup, emb_lookup):
+def get_strengths(cand, feats, embs):
     cid = cand.get("candidate_id", "")
-    strengths = []
-    feats = feats_lookup.get(cid, {})
-    emb = emb_lookup.get(cid, {})
-    
-    if feats.get("must_have_skill_score", 0) > 0.5:
-        strengths.append("Strong match on must-have skills")
-    if feats.get("career_depth_score", 0) > 0.4:
-        strengths.append("Deep production ML experience")
-    if feats.get("title_relevance_score", 0) >= 0.8:
-        strengths.append("Directly relevant job title")
-    if emb.get("sim_combined", 0) > 0.6:
-        strengths.append("High semantic alignment with JD")
-    if feats.get("experience_fit_score", 0) > 0.8:
-        strengths.append("Ideal experience range")
-    if feats.get("product_vs_services_score", 0) > 0.7:
-        strengths.append("Product company background")
-    if feats.get("notice_period_score", 0) > 0.8:
-        strengths.append("Available on short notice")
-    
-    return strengths[:4] if strengths else ["Meets baseline qualifications"]
+    f = feats.get(cid, {})
+    e = embs.get(cid, {})
+    s = []
+    if f.get("must_have_skill_score", 0) > 0.5:
+        s.append("Strong match on must-have skills")
+    if f.get("career_depth_score", 0) > 0.4:
+        s.append("Deep production ML/search experience")
+    if f.get("title_relevance_score", 0) >= 0.8:
+        s.append("Directly relevant job title")
+    if e.get("sim_combined", 0) > 0.6:
+        s.append("High semantic alignment with JD")
+    if f.get("experience_fit_score", 0) > 0.8:
+        s.append("Ideal experience range (6-8 years)")
+    if f.get("product_vs_services_score", 0) > 0.7:
+        s.append("Product company background")
+    if f.get("notice_period_score", 0) > 0.8:
+        s.append("Available on short notice")
+    if f.get("github_score", 0) > 0.6:
+        s.append("Active GitHub profile")
+    return s[:5] if s else ["Meets baseline qualifications"]
 
 
-def get_concerns(cand, feats_lookup, honey_lookup):
+def get_concerns(cand, feats, honeys):
     cid = cand.get("candidate_id", "")
-    concerns = []
-    feats = feats_lookup.get(cid, {})
-    honey = honey_lookup.get(cid, {})
-    
-    if feats.get("experience_fit_score", 1) < 0.5:
-        yoe = cand.get("profile", {}).get("years_of_experience", 0)
+    f = feats.get(cid, {})
+    h = honeys.get(cid, {})
+    c = []
+    yoe = cand.get("profile", {}).get("years_of_experience", 0)
+    if f.get("experience_fit_score", 1) < 0.5:
         if yoe < 4:
-            concerns.append("Below preferred experience range")
+            c.append("Below preferred experience range")
         elif yoe > 12:
-            concerns.append("May be overqualified for the role")
-    if feats.get("location_fit_score", 1) < 0.5:
-        concerns.append("Location may not be ideal")
-    if feats.get("must_have_skill_score", 1) < 0.2:
-        concerns.append("Limited overlap with must-have skills")
-    if honey.get("implausibility_score", 0) > 0.1:
-        concerns.append("Minor profile inconsistencies detected")
-    
-    return concerns[:3] if concerns else ["No major concerns identified"]
+            c.append("May be overqualified for this role")
+    if f.get("location_fit_score", 1) < 0.5:
+        loc = cand.get("profile", {}).get("location", "Unknown")
+        c.append(f"Location ({loc}) may require relocation")
+    if f.get("must_have_skill_score", 1) < 0.2:
+        c.append("Limited overlap with must-have skills")
+    if f.get("notice_period_score", 1) < 0.4:
+        c.append("Long notice period")
+    if h.get("implausibility_score", 0) > 0.1:
+        c.append("Minor profile inconsistencies noted")
+    return c[:4] if c else ["No major concerns identified"]
 
 
 # ---------------------------------------------------------------------------
@@ -524,64 +477,61 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-render_step_indicators(st.session_state.step)
+render_steps(st.session_state.step)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# STEP 1: Upload Candidate Data
+# STEP 1: Upload
 # ═══════════════════════════════════════════════════════════════════════════
 
 if st.session_state.step == 1:
-    
-    col_left, col_spacer, col_right = st.columns([5, 1, 5])
-    
-    with col_left:
+
+    col_l, col_r = st.columns(2, gap="large")
+
+    with col_l:
         st.markdown("""
         <div class="glass-card">
             <div class="card-title">📤 Upload Candidate Data</div>
             <div class="card-subtitle">
-                Upload a JSON or JSONL file containing candidate profiles. 
-                Supports up to 200 MB.
+                Upload a JSON or JSONL file containing candidate profiles.
+                Supports files up to 200 MB.
             </div>
         </div>
         """, unsafe_allow_html=True)
-        
+
         uploaded = st.file_uploader(
-            "Drag and drop your candidate file",
+            "Drag and drop your candidate file here",
             type=["json", "jsonl"],
-            help="JSON array or JSONL (one candidate per line). Max 200MB.",
+            help="Accepted formats: JSON array or JSONL (one candidate per line).",
         )
-        
+
         if uploaded:
-            size_mb = uploaded.size / (1024 * 1024)
-            st.success(f"✅ **{uploaded.name}** — {size_mb:.1f} MB")
-    
-    with col_right:
+            sz = uploaded.size / (1024 * 1024)
+            st.success(f"✅ **{uploaded.name}** — {sz:.1f} MB ready")
+
+            if st.button("**Analyze Candidates →**", type="primary", use_container_width=True):
+                path = "uploaded_candidates.json"
+                with open(path, "wb") as f:
+                    f.write(uploaded.getbuffer())
+                st.session_state.input_file = path
+                st.session_state.step = 2
+                st.rerun()
+
+    with col_r:
         st.markdown("""
         <div class="glass-card">
-            <div class="card-title">📦 Or Try the Demo</div>
+            <div class="card-title">📦 Try the Demo</div>
             <div class="card-subtitle">
-                Don't have a file? Run the pipeline on our built-in 
-                50-candidate sample dataset.
+                No file? Run the pipeline on our built-in 50-candidate 
+                sample dataset to see TalentRank AI in action.
             </div>
         </div>
         """, unsafe_allow_html=True)
-        
-        use_demo = st.button("🚀 Use Demo Dataset", use_container_width=True)
-    
-    st.markdown("---")
-    
-    # Handle navigation
-    if uploaded:
-        if st.button("**Analyze Candidates →**", type="primary", use_container_width=True):
-            st.session_state.input_file = save_uploaded(uploaded)
+
+        if st.button("🚀 Use Demo Dataset (50 candidates)", use_container_width=True):
+            st.session_state.input_file = "sample_candidates.json"
             st.session_state.step = 2
             st.rerun()
-    
-    if use_demo:
-        st.session_state.input_file = "sample_candidates.json"
-        st.session_state.step = 2
-        st.rerun()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -589,64 +539,110 @@ if st.session_state.step == 1:
 # ═══════════════════════════════════════════════════════════════════════════
 
 elif st.session_state.step == 2:
-    
+
     st.markdown("""
     <div class="glass-card">
         <div class="card-title">📋 Job Description</div>
         <div class="card-subtitle">
-            Our system is pre-configured for the Redrob Senior AI Engineer role. 
-            Review the key requirements below, then start analysis.
+            Choose the pre-configured Senior AI Engineer role, or paste your own 
+            job description to rank candidates against any role.
         </div>
     </div>
     """, unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("#### 🎯 Role Details")
-        st.text_input("Job Title", value="Senior AI Engineer — Embeddings & Ranking", disabled=True)
-        st.text_input("Experience", value="6–8 years (ideal range)", disabled=True)
-        st.text_input("Location", value="Noida / Pune, India (preferred)", disabled=True)
-    
-    with col2:
-        st.markdown("#### 🔧 Must-Have Skills")
-        st.markdown("""
-        <div style="margin-top: 0.5rem;">
-            <span class="skill-tag-match skill-tag">Embeddings</span>
-            <span class="skill-tag-match skill-tag">FAISS</span>
-            <span class="skill-tag-match skill-tag">Pinecone</span>
-            <span class="skill-tag-match skill-tag">Weaviate</span>
-            <span class="skill-tag-match skill-tag">PyTorch</span>
-            <span class="skill-tag-match skill-tag">TensorFlow</span>
-            <span class="skill-tag-match skill-tag">Sentence Transformers</span>
-            <span class="skill-tag-match skill-tag">NDCG / MRR</span>
-            <span class="skill-tag-match skill-tag">Elasticsearch</span>
-            <span class="skill-tag-match skill-tag">Python</span>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("#### ✨ Nice-to-Have")
-        st.markdown("""
-        <div style="margin-top: 0.5rem;">
-            <span class="skill-tag">LoRA / QLoRA</span>
-            <span class="skill-tag">LambdaMART</span>
-            <span class="skill-tag">ONNX / TensorRT</span>
-            <span class="skill-tag">RAG</span>
-            <span class="skill-tag">Docker / K8s</span>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    col_back, col_spacer, col_next = st.columns([1, 3, 1])
-    with col_back:
-        if st.button("← Back"):
-            st.session_state.step = 1
-            st.rerun()
-    with col_next:
-        if st.button("**🧠 Start AI Analysis →**", type="primary", use_container_width=True):
+
+    tab_preset, tab_custom = st.tabs(["🎯 Pre-configured JD (Senior AI Engineer)", "✏️ Paste Custom JD"])
+
+    with tab_preset:
+        col1, col2 = st.columns(2, gap="large")
+
+        with col1:
+            st.markdown("#### 🎯 Role Details")
+            st.markdown("""
+            | Field | Value |
+            |-------|-------|
+            | **Job Title** | Senior AI Engineer — Embeddings & Ranking |
+            | **Ideal Experience** | 6–8 years |
+            | **Preferred Location** | Noida / Pune, India |
+            | **Company Type** | Product company preferred |
+            | **Notice Period** | ≤ 30 days ideal |
+            """)
+
+        with col2:
+            st.markdown("#### 🔧 Must-Have Skills")
+            st.markdown("""
+            <div style="margin: 0.5rem 0;">
+                <span class="skill-match skill-tag">Embeddings</span>
+                <span class="skill-match skill-tag">FAISS</span>
+                <span class="skill-match skill-tag">Pinecone</span>
+                <span class="skill-match skill-tag">Weaviate</span>
+                <span class="skill-match skill-tag">PyTorch</span>
+                <span class="skill-match skill-tag">TensorFlow</span>
+                <span class="skill-match skill-tag">Sentence Transformers</span>
+                <span class="skill-match skill-tag">NDCG / MRR</span>
+                <span class="skill-match skill-tag">Elasticsearch</span>
+                <span class="skill-match skill-tag">Python</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("#### ✨ Nice-to-Have Skills")
+            st.markdown("""
+            <div style="margin: 0.5rem 0;">
+                <span class="skill-tag">LoRA / QLoRA</span>
+                <span class="skill-tag">LambdaMART</span>
+                <span class="skill-tag">ONNX / TensorRT</span>
+                <span class="skill-tag">RAG</span>
+                <span class="skill-tag">Docker / K8s</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        if st.button("🧠 **Analyze with Pre-configured JD →**", type="primary", use_container_width=True, key="btn_preset"):
+            st.session_state.jd_mode = "preset"
+            st.session_state.custom_jd_text = ""
             st.session_state.step = 3
             st.rerun()
+
+    with tab_custom:
+        st.markdown("""
+        <div class="glass-card">
+            <div class="card-title">✏️ Paste Your Job Description</div>
+            <div class="card-subtitle">
+                Paste the full job description text below. The AI will create 
+                semantic embeddings from your JD to rank candidates against 
+                your specific role requirements.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        custom_jd = st.text_area(
+            "Job Description",
+            height=300,
+            placeholder=(
+                "Paste your full job description here…\n\n"
+                "Example:\n"
+                "We are looking for a Senior Backend Engineer with 5+ years of experience "
+                "in Python, Django, and distributed systems. The ideal candidate has experience "
+                "with microservices architecture, PostgreSQL, Redis, and AWS…"
+            ),
+            help="Include role title, required skills, experience, and responsibilities for best results.",
+        )
+
+        if custom_jd and len(custom_jd.strip()) > 50:
+            st.success(f"✅ JD loaded — {len(custom_jd.strip())} characters")
+            st.caption("💡 The AI will create 3 semantic persona variants from your JD to match candidates.")
+
+            if st.button("🧠 **Analyze with Custom JD →**", type="primary", use_container_width=True, key="btn_custom"):
+                st.session_state.jd_mode = "custom"
+                st.session_state.custom_jd_text = custom_jd.strip()
+                st.session_state.step = 3
+                st.rerun()
+        elif custom_jd:
+            st.warning("Please enter at least 50 characters for meaningful analysis.")
+
+    st.markdown("---")
+
+    if st.button("← Back to Upload"):
+        st.session_state.step = 1
+        st.rerun()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -654,89 +650,101 @@ elif st.session_state.step == 2:
 # ═══════════════════════════════════════════════════════════════════════════
 
 elif st.session_state.step == 3:
-    
-    input_file = st.session_state.input_file
-    
+
+    inp = st.session_state.input_file
+
     st.markdown("""
     <div class="glass-card" style="text-align: center;">
         <div class="card-title">🧠 AI Analysis in Progress</div>
         <div class="card-subtitle">
-            Analyzing candidate profiles using semantic understanding...
+            Analyzing candidate profiles using semantic understanding…
         </div>
     </div>
     """, unsafe_allow_html=True)
-    
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-    
-    pipeline_steps = [
-        ("📄 Reading candidate data...", None, 5),
-        ("🔍 Extracting 14 structured features...", [
+
+    bar = st.progress(0)
+    msg = st.empty()
+
+    steps = [
+        ("📄 Reading candidate data…", None, 5),
+        ("🔍 Extracting 14 structured features…", [
             sys.executable, "precompute/precompute_features.py",
-            "--input", input_file, "--output", "artifacts/features.parquet",
+            "--input", inp, "--output", "artifacts/features.parquet",
         ], 25),
-        ("🛡️ Running honeypot detection (7 rules)...", [
+        ("🛡️ Running honeypot detection (7 plausibility rules)…", [
             sys.executable, "precompute/precompute_honeypot_flags.py",
-            "--input", input_file, "--output", "artifacts/honeypot_flags.parquet",
+            "--input", inp, "--output", "artifacts/honeypot_flags.parquet",
         ], 50),
-        ("🧠 Computing semantic embeddings (MiniLM-L6)...", [
-            sys.executable, "precompute/precompute_embeddings.py",
-            "--input", input_file, "--output", "artifacts/embeddings.parquet",
-        ], 80),
-        ("📊 Ranking candidates & generating explanations...", None, 90),
+        ("🧠 Computing semantic embeddings (MiniLM-L6-v2)…", None, 75),  # placeholder, built dynamically below
     ]
-    
+
+    # Build the embeddings command dynamically (may include --jd-file)
+    emb_cmd = [
+        sys.executable, "precompute/precompute_embeddings.py",
+        "--input", inp, "--output", "artifacts/embeddings.parquet",
+    ]
+    jd_file_path = None
+    if st.session_state.jd_mode == "custom" and st.session_state.custom_jd_text:
+        jd_file_path = "custom_jd.txt"
+        with open(jd_file_path, "w", encoding="utf-8") as f:
+            f.write(st.session_state.custom_jd_text)
+        emb_cmd.extend(["--jd-file", jd_file_path])
+
+    # Replace the placeholder embeddings step with the actual command
+    steps[-1] = ("🧠 Computing semantic embeddings (MiniLM-L6-v2)…", emb_cmd, 80)
+
+    # Add final placeholder step
+    steps.append(
+        ("📊 Ranking candidates & generating explanations…", None, 90),
+    )
+
     logs = {}
-    all_ok = True
-    
-    for step_label, cmd, progress in pipeline_steps:
-        status_text.markdown(f"**{step_label}**")
-        progress_bar.progress(progress)
-        
+    ok = True
+
+    for label, cmd, pct in steps:
+        msg.markdown(f"**{label}**")
+        bar.progress(pct)
         if cmd:
-            log = run_pipeline_step(step_label, cmd)
-            logs[step_label] = log
-            if log["returncode"] != 0:
-                st.error(f"❌ Failed: {step_label}")
-                st.code(log["stderr"][-2000:])
-                all_ok = False
+            log = run_step(cmd)
+            logs[label] = log
+            if log["rc"] != 0:
+                st.error(f"❌ {label}")
+                st.code(log["stderr"][-3000:])
+                ok = False
                 break
         else:
             time.sleep(0.5)
-    
-    if all_ok:
-        # Run ranking
-        candidates = load_candidates_from_file(input_file)
+
+    if ok:
+        candidates = load_file(inp)
         top_n = min(100, len(candidates))
-        
-        status_text.markdown("**🏆 Generating final rankings...**")
-        
-        rank_cmd = [
+
+        msg.markdown("**🏆 Generating final rankings…**")
+
+        t0 = time.time()
+        r = subprocess.run([
             sys.executable, "rank.py",
-            "--input", input_file,
+            "--input", inp,
             "--output", "submission_demo.csv",
             "--top-n", str(top_n),
-        ]
-        t0 = time.time()
-        rank_result = subprocess.run(rank_cmd, capture_output=True, text=True, cwd=".")
+        ], capture_output=True, text=True, cwd=".")
         elapsed = time.time() - t0
-        
-        if rank_result.returncode == 0:
-            progress_bar.progress(100)
-            status_text.markdown("**✅ Analysis complete!**")
-            
-            # Store results
+
+        if r.returncode == 0:
+            bar.progress(100)
+            msg.markdown("**✅ Analysis complete!**")
+
             st.session_state.candidates = candidates
             st.session_state.submission = pd.read_csv("submission_demo.csv")
             st.session_state.logs = logs
             st.session_state.elapsed = elapsed
-            
-            time.sleep(1)
+
+            time.sleep(0.8)
             st.session_state.step = 4
             st.rerun()
         else:
-            st.error("Ranking failed!")
-            st.code(rank_result.stderr[-2000:])
+            st.error("❌ Ranking failed")
+            st.code(r.stderr[-3000:])
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -744,32 +752,32 @@ elif st.session_state.step == 3:
 # ═══════════════════════════════════════════════════════════════════════════
 
 elif st.session_state.step == 4:
-    
-    submission = st.session_state.submission
-    candidates = st.session_state.candidates
+
+    sub = st.session_state.submission
+    cands = st.session_state.candidates
     elapsed = st.session_state.elapsed
-    candidate_lookup = {c["candidate_id"]: c for c in candidates}
-    
-    # Load feature data for strengths/concerns
-    features_df = pd.read_parquet("artifacts/features.parquet")
-    honeypot_df = pd.read_parquet("artifacts/honeypot_flags.parquet")
-    embeddings_df = pd.read_parquet("artifacts/embeddings.parquet")
-    feats_lookup = features_df.set_index("candidate_id").to_dict("index")
-    honey_lookup = honeypot_df.set_index("candidate_id").to_dict("index")
-    emb_lookup = embeddings_df.set_index("candidate_id").to_dict("index")
-    
-    excluded = (honeypot_df["implausibility_score"] >= 0.3).sum()
-    
-    # --- Metrics row ---
-    m1, m2, m3, m4, m5 = st.columns(5)
-    
-    for col, val, label in [
-        (m1, len(candidates), "CANDIDATES"),
-        (m2, int(excluded), "HONEYPOTS"),
-        (m3, len(submission), "RANKED"),
-        (m4, f"{elapsed:.1f}s", "RUNTIME"),
-        (m5, f"{score_to_100(submission['score'].max())}", "TOP SCORE"),
-    ]:
+    c_lookup = {c["candidate_id"]: c for c in cands}
+
+    # Load enrichment data
+    feat_df = pd.read_parquet("artifacts/features.parquet")
+    honey_df = pd.read_parquet("artifacts/honeypot_flags.parquet")
+    emb_df = pd.read_parquet("artifacts/embeddings.parquet")
+    feat_lu = feat_df.set_index("candidate_id").to_dict("index")
+    honey_lu = honey_df.set_index("candidate_id").to_dict("index")
+    emb_lu = emb_df.set_index("candidate_id").to_dict("index")
+    excluded = int((honey_df["implausibility_score"] >= 0.3).sum())
+    top_score = score100(sub["score"].max())
+
+    # ── Metrics ──
+    cols = st.columns(5)
+    metrics = [
+        (len(cands), "CANDIDATES PROCESSED"),
+        (excluded, "HONEYPOTS EXCLUDED"),
+        (len(sub), "CANDIDATES RANKED"),
+        (f"{elapsed:.1f}s", "RANKING TIME"),
+        (top_score, "TOP AI SCORE"),
+    ]
+    for col, (val, label) in zip(cols, metrics):
         with col:
             st.markdown(f"""
             <div class="metric-card">
@@ -777,180 +785,244 @@ elif st.session_state.step == 4:
                 <div class="metric-label">{label}</div>
             </div>
             """, unsafe_allow_html=True)
-    
+
     st.markdown("---")
-    
-    # --- Tabs ---
-    tab_all, tab_short, tab_logs = st.tabs(["📊 All Candidates", "⭐ Shortlisted", "📋 Logs"])
-    
+
+    # ── Tabs ──
+    tab_all, tab_short, tab_logs = st.tabs([
+        f"📊 All Candidates ({len(sub)})",
+        f"⭐ Shortlisted ({len(st.session_state.shortlisted)})",
+        "📋 Pipeline Logs",
+    ])
+
+    # ── ALL CANDIDATES TAB ──
     with tab_all:
-        # Filters
-        col_search, col_min_score, col_exp = st.columns([3, 1, 1])
-        with col_search:
-            search = st.text_input("🔍 Search candidates...", placeholder="Search by name, title, skills...")
-        with col_min_score:
-            min_score = st.slider("Min Score", 0, 100, 0)
-        with col_exp:
-            exp_filter = st.selectbox("Experience", ["All", "0-3y", "4-6y", "7-10y", "10+y"])
-        
-        # Filter logic
-        filtered = submission.copy()
-        
-        for idx, row in filtered.iterrows():
-            cand = candidate_lookup.get(row["candidate_id"], {})
-            profile = cand.get("profile", {})
-            filtered.loc[idx, "_title"] = profile.get("current_title", "")
-            filtered.loc[idx, "_yoe"] = profile.get("years_of_experience", 0)
-            filtered.loc[idx, "_location"] = profile.get("location", "")
-            filtered.loc[idx, "_company"] = profile.get("current_company", "")
-            filtered.loc[idx, "_score100"] = score_to_100(row["score"])
-        
-        if search:
-            search_lower = search.lower()
-            mask = (
-                filtered["candidate_id"].str.lower().str.contains(search_lower, na=False) |
-                filtered["_title"].str.lower().str.contains(search_lower, na=False) |
-                filtered["reasoning"].str.lower().str.contains(search_lower, na=False) |
-                filtered["_company"].str.lower().str.contains(search_lower, na=False)
+
+        # Filters row
+        fc1, fc2, fc3 = st.columns([3, 1, 1])
+        with fc1:
+            search = st.text_input(
+                "🔍 Search candidates",
+                placeholder="Search by ID, title, company, skills…",
+                label_visibility="collapsed",
             )
-            filtered = filtered[mask]
-        
+        with fc2:
+            min_score = st.slider("Min Score", 0, 100, 0, help="Filter by minimum AI score")
+        with fc3:
+            exp_filter = st.selectbox("Experience", ["All", "0-3y", "4-6y", "7-10y", "10+y"])
+
+        # Build enriched DataFrame (vectorized)
+        enriched = sub.copy()
+        enriched["_title"] = enriched["candidate_id"].map(
+            lambda cid: c_lookup.get(cid, {}).get("profile", {}).get("current_title", "")
+        )
+        enriched["_yoe"] = enriched["candidate_id"].map(
+            lambda cid: c_lookup.get(cid, {}).get("profile", {}).get("years_of_experience", 0)
+        )
+        enriched["_company"] = enriched["candidate_id"].map(
+            lambda cid: c_lookup.get(cid, {}).get("profile", {}).get("current_company", "")
+        )
+        enriched["_location"] = enriched["candidate_id"].map(
+            lambda cid: c_lookup.get(cid, {}).get("profile", {}).get("location", "")
+        )
+        enriched["_s100"] = enriched["score"].apply(score100)
+
+        # Apply filters
+        if search:
+            q = search.lower()
+            mask = (
+                enriched["candidate_id"].str.lower().str.contains(q, na=False) |
+                enriched["_title"].str.lower().str.contains(q, na=False) |
+                enriched["_company"].str.lower().str.contains(q, na=False) |
+                enriched["reasoning"].str.lower().str.contains(q, na=False)
+            )
+            enriched = enriched[mask]
+
         if min_score > 0:
-            filtered = filtered[filtered["_score100"] >= min_score]
-        
+            enriched = enriched[enriched["_s100"] >= min_score]
+
         if exp_filter != "All":
-            ranges = {"0-3y": (0, 3), "4-6y": (4, 6), "7-10y": (7, 10), "10+y": (10, 50)}
+            ranges = {"0-3y": (0, 3), "4-6y": (4, 6), "7-10y": (7, 10), "10+y": (10, 99)}
             lo, hi = ranges[exp_filter]
-            filtered = filtered[(filtered["_yoe"] >= lo) & (filtered["_yoe"] <= hi)]
-        
-        st.caption(f"Showing {len(filtered)} of {len(submission)} candidates")
-        
-        # Render candidate cards
-        for _, row in filtered.iterrows():
+            enriched = enriched[(enriched["_yoe"] >= lo) & (enriched["_yoe"] <= hi)]
+
+        st.caption(f"Showing **{len(enriched)}** of {len(sub)} candidates")
+
+        # ── Download ALL results button ──
+        all_csv_rows = []
+        for _, row in sub.iterrows():
+            c = c_lookup.get(row["candidate_id"], {})
+            p = c.get("profile", {})
+            all_csv_rows.append({
+                "Rank": int(row["rank"]),
+                "Candidate ID": row["candidate_id"],
+                "AI Score": score100(row["score"]),
+                "Title": p.get("current_title", ""),
+                "Experience (years)": p.get("years_of_experience", 0),
+                "Company": p.get("current_company", ""),
+                "Location": p.get("location", ""),
+                "Country": p.get("country", ""),
+                "Skills": ", ".join(get_skills(c, 15)),
+                "AI Reasoning": row["reasoning"],
+            })
+        all_csv_df = pd.DataFrame(all_csv_rows)
+        st.download_button(
+            "📥 Download All Results as CSV",
+            data=all_csv_df.to_csv(index=False),
+            file_name="talentrank_all_results.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+
+        st.markdown("")
+
+        # ── Render candidate cards ──
+        for _, row in enriched.iterrows():
             cid = row["candidate_id"]
-            cand = candidate_lookup.get(cid, {})
+            cand = c_lookup.get(cid, {})
             profile = cand.get("profile", {})
-            score_100 = score_to_100(row["score"])
-            s_class = score_class(score_100)
-            skills = get_candidate_skills(cand)
-            strengths = get_strengths(cand, feats_lookup, emb_lookup)
-            concerns = get_concerns(cand, feats_lookup, honey_lookup)
-            
-            skills_html = " ".join(f'<span class="skill-tag">{s}</span>' for s in skills)
-            
-            is_shortlisted = cid in st.session_state.shortlisted
-            
-            with st.container():
-                c1, c2 = st.columns([1, 12])
-                
-                with c1:
-                    st.markdown(f"""
-                    <div class="score-badge {s_class}" style="margin-top: 0.5rem;">
-                        {score_100}
+            s = score100(row["score"])
+            cls = score_cls(s)
+            skills = get_skills(cand)
+            education = get_education(cand)
+            strengths = get_strengths(cand, feat_lu, emb_lu)
+            concerns = get_concerns(cand, feat_lu, honey_lu)
+            is_short = cid in st.session_state.shortlisted
+
+            # Skills HTML
+            skills_html = " ".join(f'<span class="skill-tag">{sk}</span>' for sk in skills)
+
+            # Card header with score + info
+            st.markdown(f"""
+            <div class="cand-card">
+                <div class="cand-header">
+                    <div class="cand-score {cls}">{s}</div>
+                    <div class="cand-info">
+                        <div class="cand-name">#{int(row['rank'])} — {profile.get('current_title', 'N/A')}</div>
+                        <div class="cand-meta">
+                            <span>🆔 {cid}</span> ·
+                            <span>📅 {profile.get('years_of_experience', 0):.0f}y experience</span> ·
+                            <span>🏢 {profile.get('current_company', 'N/A')}</span> ·
+                            <span>📍 {profile.get('location', 'N/A')}, {profile.get('country', '')}</span>
+                        </div>
                     </div>
-                    """, unsafe_allow_html=True)
-                
-                with c2:
-                    st.markdown(f"""
-                    <div class="candidate-name">{cid} — {profile.get('current_title', 'N/A')}</div>
-                    <div class="candidate-title">
-                        {profile.get('years_of_experience', 0):.0f}y experience · 
-                        {profile.get('current_company', 'N/A')} · 
-                        {profile.get('location', 'N/A')}
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    st.markdown(f'<div class="ai-summary">💡 {row["reasoning"]}</div>', unsafe_allow_html=True)
-                    
-                    exp_key = f"exp_{cid}"
-                    with st.expander("View details"):
-                        dc1, dc2 = st.columns(2)
-                        with dc1:
-                            st.markdown("**✅ Strengths**")
-                            for s in strengths:
-                                st.markdown(f"- {s}")
-                        with dc2:
-                            st.markdown("**⚠️ Potential Concerns**")
-                            for c in concerns:
-                                st.markdown(f"- {c}")
-                        
-                        st.markdown(f"**Skills:** {skills_html}", unsafe_allow_html=True)
-                        
-                        assessments = cand.get("redrob_signals", {}).get("skill_assessment_scores", {})
-                        if assessments:
-                            st.markdown("**Redrob Assessments:**")
-                            for skill, sc in sorted(assessments.items(), key=lambda x: x[1], reverse=True)[:5]:
-                                st.markdown(f"- {skill}: **{sc:.0f}**/100")
-                    
-                    # Shortlist button
-                    btn_label = "✓ Shortlisted" if is_shortlisted else "⭐ Shortlist"
-                    if st.button(btn_label, key=f"btn_{cid}"):
-                        if is_shortlisted:
-                            st.session_state.shortlisted.discard(cid)
-                        else:
-                            st.session_state.shortlisted.add(cid)
-                        st.rerun()
-                
-                st.markdown("---")
-    
+                </div>
+                <div class="ai-box">💡 {row['reasoning']}</div>
+                <div>{skills_html}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Expandable details
+            with st.expander(f"View full profile — {cid}"):
+                d1, d2, d3 = st.columns(3)
+
+                with d1:
+                    st.markdown("**✅ Strengths**")
+                    for item in strengths:
+                        st.markdown(f"- 🟢 {item}")
+
+                with d2:
+                    st.markdown("**⚠️ Potential Concerns**")
+                    for item in concerns:
+                        st.markdown(f"- 🟡 {item}")
+
+                with d3:
+                    st.markdown("**🎓 Education**")
+                    for item in education:
+                        st.markdown(f"- {item}")
+
+                # Assessments
+                assessments = cand.get("redrob_signals", {}).get("skill_assessment_scores", {})
+                if assessments:
+                    st.markdown("**📊 Redrob Assessment Scores**")
+                    a_cols = st.columns(min(len(assessments), 5))
+                    for i, (skill, sc) in enumerate(sorted(assessments.items(), key=lambda x: x[1], reverse=True)[:5]):
+                        with a_cols[i]:
+                            st.metric(skill, f"{sc:.0f}/100")
+
+                # Additional profile info
+                notice = profile.get("notice_period_days")
+                industry = profile.get("current_industry", "")
+                if notice or industry:
+                    st.markdown("**📋 Additional Info**")
+                    info_parts = []
+                    if notice is not None:
+                        info_parts.append(f"Notice period: {notice} days")
+                    if industry:
+                        info_parts.append(f"Industry: {industry}")
+                    st.markdown(" · ".join(info_parts))
+
+            # Shortlist button
+            lbl = "✅ Shortlisted" if is_short else "⭐ Add to Shortlist"
+            if st.button(lbl, key=f"sl_{cid}", use_container_width=False):
+                if is_short:
+                    st.session_state.shortlisted.discard(cid)
+                else:
+                    st.session_state.shortlisted.add(cid)
+                st.rerun()
+
+            st.markdown("")  # Spacer
+
+    # ── SHORTLIST TAB ──
     with tab_short:
-        shortlisted = st.session_state.shortlisted
-        
-        if not shortlisted:
-            st.info("No candidates shortlisted yet. Click **⭐ Shortlist** on any candidate card.")
+        shortlist = st.session_state.shortlisted
+
+        if not shortlist:
+            st.info("No candidates shortlisted yet. Click **⭐ Add to Shortlist** on any candidate to add them here.")
         else:
-            st.markdown(f"### ⭐ {len(shortlisted)} Shortlisted Candidates")
-            
-            short_rows = []
-            for _, row in submission.iterrows():
-                if row["candidate_id"] in shortlisted:
-                    cand = candidate_lookup.get(row["candidate_id"], {})
-                    profile = cand.get("profile", {})
-                    short_rows.append({
+            st.markdown(f"### ⭐ {len(shortlist)} Shortlisted Candidates")
+
+            rows = []
+            for _, row in sub.iterrows():
+                if row["candidate_id"] in shortlist:
+                    c = c_lookup.get(row["candidate_id"], {})
+                    p = c.get("profile", {})
+                    rows.append({
                         "Rank": int(row["rank"]),
                         "Candidate ID": row["candidate_id"],
-                        "Score": score_to_100(row["score"]),
-                        "Title": profile.get("current_title", ""),
-                        "Experience": f"{profile.get('years_of_experience', 0):.0f}y",
-                        "Location": profile.get("location", ""),
-                        "Recommendation": row["reasoning"][:150] + "...",
+                        "AI Score": score100(row["score"]),
+                        "Title": p.get("current_title", ""),
+                        "Experience": f"{p.get('years_of_experience', 0):.0f}y",
+                        "Company": p.get("current_company", ""),
+                        "Location": p.get("location", ""),
+                        "Skills": ", ".join(get_skills(c, 8)),
+                        "Recommendation": row["reasoning"][:200],
                     })
-            
-            short_df = pd.DataFrame(short_rows)
-            st.dataframe(short_df, use_container_width=True, hide_index=True)
-            
-            # Export
-            csv_data = short_df.to_csv(index=False)
+
+            sdf = pd.DataFrame(rows)
+            st.dataframe(sdf, use_container_width=True, hide_index=True)
+
             st.download_button(
                 "📥 Export Shortlist as CSV",
-                data=csv_data,
+                data=sdf.to_csv(index=False),
                 file_name="shortlisted_candidates.csv",
                 mime="text/csv",
                 use_container_width=True,
             )
-    
+
+    # ── LOGS TAB ──
     with tab_logs:
         if st.session_state.logs:
-            for step_name, log in st.session_state.logs.items():
-                with st.expander(step_name):
-                    stdout = log["stdout"]
-                    st.code(stdout[-3000:] if len(stdout) > 3000 else stdout)
-    
-    # Bottom nav
+            for name, log in st.session_state.logs.items():
+                with st.expander(name):
+                    out = log["stdout"]
+                    st.code(out[-3000:] if len(out) > 3000 else out)
+        else:
+            st.info("No pipeline logs available.")
+
+    # ── Bottom nav ──
     st.markdown("---")
-    col_back, col_spacer, col_restart = st.columns([1, 4, 1])
-    with col_back:
-        if st.button("← New Analysis"):
-            for key in ["step", "candidates", "submission", "logs", "elapsed", "input_file"]:
-                if key in st.session_state:
-                    del st.session_state[key]
-            st.session_state.step = 1
-            st.session_state.shortlisted = set()
-            st.rerun()
+    if st.button("🔄 Start New Analysis"):
+        for k in ["step", "candidates", "submission", "logs", "elapsed", "input_file", "jd_mode", "custom_jd_text"]:
+            if k in st.session_state:
+                del st.session_state[k]
+        st.session_state.step = 1
+        st.session_state.shortlisted = set()
+        st.rerun()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# STEP 5 redirect (just show tab_short from step 4)
+# STEP 5 → redirect to Results tab
 # ═══════════════════════════════════════════════════════════════════════════
 
 elif st.session_state.step == 5:

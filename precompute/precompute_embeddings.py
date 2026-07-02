@@ -259,6 +259,9 @@ def main():
                         help="Also save raw embeddings as .npy file")
     parser.add_argument("--summary", action="store_true",
                         help="Print summary of similarity scores")
+    parser.add_argument("--jd-file", default=None,
+                        help="Path to a custom JD text file. If provided, persona embeddings "
+                             "are derived from this text instead of the hardcoded defaults.")
     args = parser.parse_args()
     
     # Load candidates
@@ -302,10 +305,35 @@ def main():
     t2 = time.time()
     print(f"Skills-only encoding done in {t2 - t1:.1f}s")
     
-    # Encode JD personas
-    print("Encoding JD persona variants...")
+    # Encode JD personas — use custom JD file if provided, else hardcoded defaults
+    if args.jd_file:
+        print(f"Loading custom JD from {args.jd_file}...")
+        with open(args.jd_file, "r", encoding="utf-8") as f:
+            custom_jd = f.read().strip()
+        print(f"  Custom JD length: {len(custom_jd)} chars")
+        # Build 3 persona variants from the custom JD text:
+        #   1. Direct: the raw JD text (catches exact-match candidates)
+        #   2. Rephrased: simplified description of what a great hire looks like
+        #   3. Skills focus: extract skill-like keywords and requirements
+        custom_personas = {
+            "direct": custom_jd,
+            "rephrased": (
+                f"An experienced engineer who is an excellent fit for this role. "
+                f"They have the skills and experience described in the following job description: "
+                f"{custom_jd[:800]}"
+            ),
+            "skills_focus": (
+                f"A candidate with strong technical skills matching: {custom_jd[:600]}. "
+                f"Production experience, hands-on engineering, and relevant domain expertise."
+            ),
+        }
+        active_personas = custom_personas
+    else:
+        active_personas = JD_PERSONAS
+    
+    print(f"Encoding {len(active_personas)} JD persona variants...")
     persona_embeddings = {}
-    for name, text in JD_PERSONAS.items():
+    for name, text in active_personas.items():
         emb = model.encode([text], normalize_embeddings=True)
         persona_embeddings[name] = emb[0]
     
@@ -323,8 +351,8 @@ def main():
     
     # Aggregate similarities
     # Max similarity across personas (full text) — best-case match
-    full_sim_cols = [f"sim_full_{name}" for name in JD_PERSONAS]
-    skill_sim_cols = [f"sim_skills_{name}" for name in JD_PERSONAS]
+    full_sim_cols = [f"sim_full_{name}" for name in active_personas]
+    skill_sim_cols = [f"sim_skills_{name}" for name in active_personas]
     
     full_sim_matrix = np.column_stack([results[col] for col in full_sim_cols])
     skill_sim_matrix = np.column_stack([results[col] for col in skill_sim_cols])
@@ -387,7 +415,7 @@ def main():
         
         # Check persona coverage — which persona matches best for each candidate?
         print("\n--- Persona that matches best per candidate (full text) ---")
-        persona_names = list(JD_PERSONAS.keys())
+        persona_names = list(active_personas.keys())
         best_persona_idx = full_sim_matrix.argmax(axis=1)
         from collections import Counter
         counts = Counter(persona_names[i] for i in best_persona_idx)
