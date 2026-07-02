@@ -45,6 +45,44 @@ st.markdown("""
         background: linear-gradient(180deg, #F8FAFC 0%, #EEF2FF 100%);
     }
     
+    /* ── Force readable dark text everywhere ── */
+    .stMarkdown, .stMarkdown p, .stMarkdown li, .stMarkdown td, .stMarkdown th,
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4, .stMarkdown h5, .stMarkdown h6 {
+        color: #1E293B !important;
+    }
+    
+    .stMarkdown th {
+        color: #475569 !important;
+        font-weight: 600 !important;
+    }
+    
+    .stMarkdown a { color: #4F46E5 !important; }
+    
+    /* Streamlit tab labels */
+    [data-baseweb="tab-list"] button,
+    [data-baseweb="tab-list"] button p,
+    [data-baseweb="tab-list"] button div {
+        color: #475569 !important;
+    }
+    [data-baseweb="tab-list"] button[aria-selected="true"],
+    [data-baseweb="tab-list"] button[aria-selected="true"] p {
+        color: #4F46E5 !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Expander headers */
+    [data-testid="stExpander"] summary,
+    [data-testid="stExpander"] summary span,
+    [data-testid="stExpander"] summary p {
+        color: #1E293B !important;
+    }
+    
+    /* Captions */
+    .stCaption, .stCaption p { color: #64748B !important; }
+    
+    /* Success / Warning / Error alerts text */
+    [data-testid="stAlert"] p { color: inherit !important; }
+    
     /* Hide default Streamlit elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
@@ -151,13 +189,13 @@ st.markdown("""
     .card-title {
         font-size: 1.15rem;
         font-weight: 700;
-        color: #1E293B;
+        color: #1E293B !important;
         margin-bottom: 0.4rem;
     }
     
     .card-subtitle {
         font-size: 0.88rem;
-        color: #64748B;
+        color: #64748B !important;
         line-height: 1.5;
     }
     
@@ -200,14 +238,14 @@ st.markdown("""
     .cand-name {
         font-size: 1.05rem;
         font-weight: 700;
-        color: #1E293B;
+        color: #1E293B !important;
         margin-bottom: 2px;
         word-wrap: break-word;
     }
     
     .cand-meta {
         font-size: 0.85rem;
-        color: #64748B;
+        color: #64748B !important;
         margin-bottom: 0.5rem;
     }
     
@@ -222,7 +260,7 @@ st.markdown("""
         border-radius: 0 12px 12px 0;
         padding: 10px 14px;
         font-size: 0.85rem;
-        color: #334155;
+        color: #334155 !important;
         line-height: 1.55;
         margin: 0.5rem 0 0.75rem;
         word-wrap: break-word;
@@ -232,7 +270,7 @@ st.markdown("""
     .skill-tag {
         display: inline-block;
         background: #EEF2FF;
-        color: #4F46E5;
+        color: #4F46E5 !important;
         padding: 3px 10px;
         border-radius: 6px;
         font-size: 0.75rem;
@@ -242,7 +280,7 @@ st.markdown("""
     
     .skill-match {
         background: #ECFDF5;
-        color: #059669;
+        color: #059669 !important;
         border: 1px solid #A7F3D0;
     }
     
@@ -267,7 +305,7 @@ st.markdown("""
     
     .metric-label {
         font-size: 0.75rem;
-        color: #94A3B8;
+        color: #94A3B8 !important;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -289,6 +327,7 @@ st.markdown("""
     /* ─── Text inputs ─── */
     .stTextArea textarea, .stTextInput input {
         border-radius: 10px !important;
+        color: #1E293B !important;
     }
     
     /* ─── Download button ─── */
@@ -311,7 +350,7 @@ st.markdown("""
     .detail-label {
         font-size: 0.78rem;
         font-weight: 600;
-        color: #64748B;
+        color: #64748B !important;
         text-transform: uppercase;
         letter-spacing: 0.4px;
         margin-bottom: 6px;
@@ -319,12 +358,12 @@ st.markdown("""
     
     .detail-item {
         font-size: 0.88rem;
-        color: #334155;
+        color: #334155 !important;
         padding: 2px 0;
     }
     
-    .strength-item { color: #059669; }
-    .concern-item  { color: #D97706; }
+    .strength-item { color: #059669 !important; }
+    .concern-item  { color: #D97706 !important; }
     
     /* ─── Divider ─── */
     hr {
