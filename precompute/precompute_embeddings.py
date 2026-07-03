@@ -30,6 +30,7 @@ import sys
 import time
 from pathlib import Path
 
+# pyrefly: ignore [missing-import]
 import numpy as np
 import pandas as pd
 
@@ -269,6 +270,9 @@ def main():
     parser.add_argument("--jd-file", default=None,
                         help="Path to a custom JD text file. If provided, persona embeddings "
                              "are derived from this text instead of the hardcoded defaults.")
+    parser.add_argument("--jd-config", default=None,
+                        help="Path to a JD config JSON (from parse_jd.py). When provided "
+                             "alongside --jd-file, builds richer structured personas.")
     args = parser.parse_args()
     
     # Load candidates
@@ -318,22 +322,85 @@ def main():
         with open(args.jd_file, "r", encoding="utf-8") as f:
             custom_jd = f.read().strip()
         print(f"  Custom JD length: {len(custom_jd)} chars")
-        # Build 3 persona variants from the custom JD text:
-        #   1. Direct: the raw JD text (catches exact-match candidates)
-        #   2. Rephrased: simplified description of what a great hire looks like
-        #   3. Skills focus: extract skill-like keywords and requirements
-        custom_personas = {
-            "direct": custom_jd,
-            "rephrased": (
-                f"An experienced engineer who is an excellent fit for this role. "
-                f"They have the skills and experience described in the following job description: "
-                f"{custom_jd[:800]}"
-            ),
-            "skills_focus": (
-                f"A candidate with strong technical skills matching: {custom_jd[:600]}. "
-                f"Production experience, hands-on engineering, and relevant domain expertise."
-            ),
-        }
+        
+        # Check if we also have a structured JD config for richer personas
+        jd_cfg = None
+        if args.jd_config:
+            print(f"Loading structured JD config from {args.jd_config}...")
+            with open(args.jd_config, "r", encoding="utf-8") as f:
+                jd_cfg = json.load(f)
+        
+        if jd_cfg:
+            # Build 4 structured persona variants from parsed config
+            seniority = jd_cfg.get("seniority", "mid").title()
+            title_kws = jd_cfg.get("title_keywords", [])
+            role_title = " ".join(title_kws[:4]).title() if title_kws else "Engineer"
+            exp_range = jd_cfg.get("experience_range", {})
+            exp_min = exp_range.get("min", 0)
+            exp_max = exp_range.get("max", 99)
+            must_terms = jd_cfg.get("must_have_terms", [])
+            nice_terms = jd_cfg.get("nice_to_have_terms", [])
+            locations = jd_cfg.get("locations", [])
+            domains = jd_cfg.get("domain_keywords", [])
+            
+            # Persona 1: Role persona (who is this person?)
+            exp_str = f"{exp_min}-{exp_max} years" if exp_max < 99 else f"{exp_min}+ years"
+            loc_str = ", ".join(l.get("city", "") for l in locations[:3]) if locations else ""
+            role_parts = [f"{seniority} {role_title} with {exp_str} of experience."]
+            if loc_str:
+                role_parts.append(f"Based in {loc_str}.")
+            if domains:
+                role_parts.append(f"Working in {', '.join(domains)} domain.")
+            role_parts.append(f"Strong background in {', '.join(must_terms[:15])}.")
+            role_persona = " ".join(role_parts)
+            
+            # Persona 2: Skills persona (what do they know?)
+            skills_parts = []
+            if must_terms:
+                skills_parts.append(f"Expert in {', '.join(must_terms[:20])}.")
+            if nice_terms:
+                skills_parts.append(f"Also experienced with {', '.join(nice_terms[:15])}.")
+            skills_parts.append(
+                "Hands-on production experience, strong software engineering fundamentals, "
+                "writes clean code, designs systems for reliability and performance."
+            )
+            skills_persona = " ".join(skills_parts)
+            
+            # Persona 3: Raw JD (catches exact-match candidates)
+            raw_persona = custom_jd
+            
+            # Persona 4: Production engineer persona
+            prod_parts = [
+                f"Built and shipped production {role_title.lower()} systems at scale.",
+                f"Designed end-to-end pipelines using {', '.join(must_terms[:10])}.",
+                "Owned deployment, monitoring, and performance optimization.",
+                f"Practical {exp_str} of hands-on engineering experience at product companies.",
+            ]
+            prod_persona = " ".join(prod_parts)
+            
+            custom_personas = {
+                "role": role_persona,
+                "skills": skills_persona,
+                "raw_jd": raw_persona,
+                "production": prod_persona,
+            }
+            print(f"  Built 4 structured personas from JD config")
+            for name, text in custom_personas.items():
+                print(f"    {name}: {len(text)} chars")
+        else:
+            # Fallback: simple variants from raw text only
+            custom_personas = {
+                "direct": custom_jd,
+                "rephrased": (
+                    f"An experienced engineer who is an excellent fit for this role. "
+                    f"They have the skills and experience described in the following job description: "
+                    f"{custom_jd[:800]}"
+                ),
+                "skills_focus": (
+                    f"A candidate with strong technical skills matching: {custom_jd[:600]}. "
+                    f"Production experience, hands-on engineering, and relevant domain expertise."
+                ),
+            }
         active_personas = custom_personas
     else:
         active_personas = JD_PERSONAS

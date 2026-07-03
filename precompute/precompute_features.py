@@ -119,6 +119,15 @@ TITLE_TIER_3 = [  # Somewhat technical → 0.35
 ]
 # Everything else → 0.05
 
+# Universal production keywords (always useful regardless of JD)
+UNIVERSAL_PRODUCTION_KEYWORDS = [
+    "production", "deployed", "scale", "latency", "throughput",
+    "real-time", "batch processing", "a/b test", "ab test",
+    "monitoring", "reliability", "performance", "optimization",
+    "architecture", "microservices", "distributed", "pipeline",
+    "ci/cd", "testing", "quality", "sla",
+]
+
 # Production ML keywords for career_depth scoring
 PRODUCTION_ML_KEYWORDS = [
     "machine learning", "deep learning", "neural network", "embedding",
@@ -716,6 +725,36 @@ def main():
             IDEAL_LOCATIONS = jd_cfg["ideal_locations"][:3]
             GOOD_LOCATIONS = jd_cfg["ideal_locations"][3:] + GOOD_LOCATIONS
             print(f"  Overrode locations: ideal={IDEAL_LOCATIONS}")
+        
+        # Override title relevance tiers from JD title_keywords
+        global TITLE_TIER_1, TITLE_TIER_2, TITLE_TIER_3
+        jd_title_kws = jd_cfg.get("title_keywords", [])
+        if jd_title_kws:
+            # Build Tier 1 from combinations of JD title keywords
+            # e.g. ["backend", "engineer", "senior"] → "backend engineer", "senior engineer", etc.
+            new_tier1 = []
+            for kw in jd_title_kws:
+                new_tier1.append(kw)  # single keyword match
+            # Also add 2-word combos for specificity
+            for i, kw1 in enumerate(jd_title_kws):
+                for kw2 in jd_title_kws[i+1:]:
+                    new_tier1.append(f"{kw1} {kw2}")
+                    new_tier1.append(f"{kw2} {kw1}")
+            # Deduplicate and set
+            TITLE_TIER_1 = list(set(new_tier1))
+            # Keep Tier 2 & 3 as universal fallbacks (they're broad enough)
+            print(f"  Overrode title Tier 1 keywords: {TITLE_TIER_1[:10]}...")
+        
+        # Override career depth keywords from JD skill terms
+        global PRODUCTION_ML_KEYWORDS
+        jd_must_terms = jd_cfg.get("must_have_terms", [])
+        jd_nice_terms = jd_cfg.get("nice_to_have_terms", [])
+        if jd_must_terms or jd_nice_terms:
+            # Merge JD-specific terms with universal production keywords
+            PRODUCTION_ML_KEYWORDS = list(set(
+                jd_must_terms + jd_nice_terms + UNIVERSAL_PRODUCTION_KEYWORDS
+            ))
+            print(f"  Overrode career depth keywords: {len(PRODUCTION_ML_KEYWORDS)} terms")
         
         # Override experience range (monkey-patch the function)
         exp_range = jd_cfg.get("experience_range", {})

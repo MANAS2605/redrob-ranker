@@ -101,7 +101,8 @@ NICE_TO_HAVE_CLUSTER_NAMES = [
 
 
 def generate_reasoning(candidate: dict, features: dict, honeypot: dict,
-                       embedding: dict, rank: int, score: float) -> str:
+                       embedding: dict, rank: int, score: float,
+                       jd_config: dict = None) -> str:
     """
     Generate a human-readable reasoning string for why this candidate
     was ranked at this position.
@@ -123,24 +124,46 @@ def generate_reasoning(candidate: dict, features: dict, honeypot: dict,
     must_have = features["must_have_skill_score"]
     sim = embedding["sim_combined"]
     
+    # Build relevant skill keyword list from JD config (or fallback to AI/ML defaults)
+    if jd_config and jd_config.get("must_have_terms"):
+        relevant_skill_keywords = [t.lower() for t in jd_config["must_have_terms"]]
+    else:
+        relevant_skill_keywords = [
+            "faiss", "pinecone", "weaviate", "qdrant", "milvus",
+            "opensearch", "elasticsearch", "embedding", "vector",
+            "pytorch", "tensorflow", "python", "ranking", "retrieval",
+            "search", "recommendation", "ndcg", "mrr", "nlp",
+            "transformer", "bert", "sentence-transformer",
+        ]
+    
+    # Get experience range description from JD config
+    if jd_config and jd_config.get("experience_range"):
+        exp_r = jd_config["experience_range"]
+        exp_min = exp_r.get("min", 0)
+        exp_max = exp_r.get("max", 99)
+        if exp_max < 99:
+            exp_desc = f"{exp_min}-{exp_max}y"
+        elif exp_min > 0:
+            exp_desc = f"{exp_min}+y"
+        else:
+            exp_desc = None
+    else:
+        exp_desc = "6-8y"
+    
     if must_have >= 0.5:
         # Strong skills match — lead with specific skills
         skills = candidate.get("skills", [])
         relevant_skills = []
         for s in skills:
             name_lower = s["name"].lower()
-            # Check if skill is in our must-have or nice-to-have lists
-            if any(kw in name_lower for kw in [
-                "faiss", "pinecone", "weaviate", "qdrant", "milvus",
-                "opensearch", "elasticsearch", "embedding", "vector",
-                "pytorch", "tensorflow", "python", "ranking", "retrieval",
-                "search", "recommendation", "ndcg", "mrr", "nlp",
-                "transformer", "bert", "sentence-transformer",
-            ]):
+            if any(kw in name_lower for kw in relevant_skill_keywords):
                 relevant_skills.append(s["name"])
         
         skill_str = ", ".join(relevant_skills[:5])
-        parts.append(f"{title} with {yoe:.0f}y exp, strong JD alignment via {skill_str}")
+        if skill_str:
+            parts.append(f"{title} with {yoe:.0f}y exp, strong JD alignment via {skill_str}")
+        else:
+            parts.append(f"{title} with {yoe:.0f}y exp, strong JD skill alignment")
     elif must_have >= 0.15:
         # Moderate match
         parts.append(f"{title} ({yoe:.0f}y) with partial JD skill overlap")
@@ -151,12 +174,18 @@ def generate_reasoning(candidate: dict, features: dict, honeypot: dict,
     # 2. Experience fit
     exp_fit = features["experience_fit_score"]
     if exp_fit >= 0.85:
-        parts.append(f"ideal {yoe:.0f}y experience for senior role")
+        parts.append(f"ideal {yoe:.0f}y experience for this role")
     elif exp_fit < 0.4:
         if yoe < 3:
-            parts.append(f"only {yoe:.0f}y experience (JD needs 6-8y)")
+            if exp_desc:
+                parts.append(f"only {yoe:.0f}y experience (JD needs {exp_desc})")
+            else:
+                parts.append(f"only {yoe:.0f}y experience")
         else:
-            parts.append(f"{yoe:.0f}y experience (outside ideal 6-8y range)")
+            if exp_desc:
+                parts.append(f"{yoe:.0f}y experience (outside ideal {exp_desc} range)")
+            else:
+                parts.append(f"{yoe:.0f}y experience")
     
     # 3. Career depth
     depth = features["career_depth_score"]
@@ -168,7 +197,7 @@ def generate_reasoning(candidate: dict, features: dict, honeypot: dict,
     if title_rel >= 0.8:
         parts.append(f"directly relevant title: {title}")
     elif title_rel <= 0.1:
-        parts.append(f"non-technical title ({title})")
+        parts.append(f"non-matching title ({title})")
     
     # 5. Location
     loc_fit = features["location_fit_score"]
@@ -288,7 +317,8 @@ def rank_and_select(df: pd.DataFrame, candidates: list[dict],
 
 def build_submission(top_df: pd.DataFrame, candidates: list[dict],
                      features_df: pd.DataFrame, honeypot_df: pd.DataFrame,
-                     embeddings_df: pd.DataFrame) -> pd.DataFrame:
+                     embeddings_df: pd.DataFrame,
+                     jd_config: dict = None) -> pd.DataFrame:
     """
     Build the submission CSV with columns (in exact order per validator):
       candidate_id, rank, score, reasoning
@@ -310,7 +340,8 @@ def build_submission(top_df: pd.DataFrame, candidates: list[dict],
         honey = honeypot_lookup.get(cid, {})
         emb = embeddings_lookup.get(cid, {})
         
-        reasoning = generate_reasoning(candidate, feats, honey, emb, rank, score_val)
+        reasoning = generate_reasoning(candidate, feats, honey, emb, rank, score_val,
+                                       jd_config=jd_config)
         
         rows.append({
             "candidate_id": cid,
@@ -371,6 +402,9 @@ def main():
                         help="Number of top candidates to select")
     parser.add_argument("--verbose", action="store_true",
                         help="Print detailed scoring breakdown")
+    parser.add_argument("--jd-config", default=None,
+                        help="Path to JD config JSON (from parse_jd.py). "
+                             "Used to generate JD-specific reasoning.")
     args = parser.parse_args()
     
     t0 = datetime.now()
@@ -397,9 +431,18 @@ def main():
     print("\nRanking and selecting...")
     top_df = rank_and_select(scored_df, candidates, top_n=args.top_n)
     
+    # Load JD config if provided (for reasoning)
+    jd_config = None
+    if args.jd_config:
+        print(f"Loading JD config from {args.jd_config}...")
+        with open(args.jd_config, "r", encoding="utf-8") as f:
+            jd_config = json.load(f)
+        print(f"  JD summary: {jd_config.get('jd_summary', 'N/A')}")
+    
     # Build submission
     print("\nGenerating submission CSV...")
-    submission = build_submission(top_df, candidates, features_df, honeypot_df, embeddings_df)
+    submission = build_submission(top_df, candidates, features_df, honeypot_df, embeddings_df,
+                                 jd_config=jd_config)
     
     # Save
     submission.to_csv(args.output, index=False)

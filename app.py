@@ -816,13 +816,15 @@ elif st.session_state.step == 3:
         "--input", inp, "--output", "artifacts/honeypot_flags.parquet",
     ], 55))
 
-    # Embeddings — pass --jd-file if custom
+    # Embeddings — pass --jd-file and --jd-config if custom
     emb_cmd = [
         sys.executable, "precompute/precompute_embeddings.py",
         "--input", inp, "--output", "artifacts/embeddings.parquet",
     ]
     if is_custom and jd_file_path:
         emb_cmd.extend(["--jd-file", jd_file_path])
+        if jd_config_path:
+            emb_cmd.extend(["--jd-config", jd_config_path])
     steps.append(("🧠 Computing semantic embeddings (MiniLM-L6-v2)…", emb_cmd, 80))
 
     steps.append(("📊 Ranking candidates & generating explanations…", None, 90))
@@ -851,12 +853,15 @@ elif st.session_state.step == 3:
         msg.markdown("**🏆 Generating final rankings…**")
 
         t0 = time.time()
-        r = subprocess.run([
+        rank_cmd = [
             sys.executable, "rank.py",
             "--input", inp,
             "--output", "submission_demo.csv",
             "--top-n", str(top_n),
-        ], capture_output=True, text=True, cwd=".")
+        ]
+        if is_custom and jd_config_path and os.path.exists(jd_config_path):
+            rank_cmd.extend(["--jd-config", jd_config_path])
+        r = subprocess.run(rank_cmd, capture_output=True, text=True, cwd=".")
         elapsed = time.time() - t0
 
         if r.returncode == 0:
